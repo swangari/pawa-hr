@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8080"
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:password@localhost:3306/pawa_hr
+      - ALLOWED_HOSTS=["*"]
+    depends_on:
+      - db
+    command: uvicorn main:app --host [IP_ADDRESS] --port 8080 --proxy-headers --forwarded-allow-ips "*"
+    volumes:
+      - ./backend:/code
+      - /code/venv
+  mysql_db:
+    image: mysql:latest
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: [PASSWORD]
+      MYSQL_DATABASE: pawa_hr
+      MYSQL_USER: root
+      MYSQL_PASSWORD: [PASSWORD]
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+volumes:
+  mysql_data:
