@@ -8,19 +8,65 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: "Source Sans Pro", sans-serif;
+  --font-source: "Source Sans Pro", sans-serif;
+  --font-instrument: var(--font-instrument-sans), sans-serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-pawa-blue: #62c3dd;
+  --color-pawa-blue-deep: #468ca0;
+  --color-pawa-navy: #262261;
+  --color-pawa-bg: #f8fafc;
+  --color-pawa-border: #e2e8f0;
+  --color-card-gray: #f1f5f9;
+  --color-majestic-purple-light: #ebeaee;
+  --color-majestic-purple-border: #d5d4dc;
+  --color-primary: #262261;
+  --color-accent-blue: #62c3dd;
+
+  --color-background-light: #f8fafc;
+  --color-card-light: #ffffff;
+  --color-surface-light: #ffffff;
+
+  /* Custom Colors from UI Snippets */
+  --color-Echo-300: #e2e8f0; /* Approximate based on Tailwind Slate-200/300 */
+  --color-Echo-500: #64748b;
+  --color-Echo-900: #0f172a; /* Approximate based on Tailwind Slate-900 */
+  --color-candidBlue-200: #bfdbfe; /* Approximate based on Tailwind Blue-200 */
+  --color-candidBlue-950: #172554; /* Approximate based on Tailwind Blue-950 */
+  --color-Colors-Gray-900: #111827;
+  --color-Colors-Gray-400: #9ca3af;
+
+  --color-Echo-900: #111827;
+  --color-Colors-Gray-800: #1f2937;
+  --color-Colors-Gray-300: #d1d5db;
+  --color-Colors-Gray-200: #e5e7eb;
+  --color-Colors-Gray-100: #f3f4f6;
+  --color-Colors-Gray-50: #f9fafb;
+  --color-Gray-600: #4b5563;
+  --color-candidBlue-700: #58aec6;
+  --color-candidBlue-600: #262261;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Source Sans Pro", sans-serif;
+  -webkit-font-smoothing: antialiased; /* Optional: Makes text look sharper on Mac */
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background);
+}
+
+/* Optional: Utility classes for weights included in the import above */
+.font-light {
+  font-weight: 300;
+}
+.font-regular {
+  font-weight: 400;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.font-bold {
+  font-weight: 700;
+}
+.font-instrument {
+  font-family: var(--font-instrument);
 }
