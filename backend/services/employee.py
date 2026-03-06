@@ -1,6 +1,7 @@
 import uuid as _uuid
 from schemas.employee import EmployeeCreate, EmployeeUpdate
 from models.employee import Employee as EmployeeModel
+from models.departments import Department as DepartmentModel
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from fastapi import HTTPException
@@ -11,8 +12,6 @@ class EmployeeService:
         self.db = db
 
     def create_employee(self, employee: EmployeeCreate) -> EmployeeModel:
-        # Validate that the department exists
-        from models.departments import Department as DepartmentModel
 
         department = (
             self.db.query(DepartmentModel)
