@@ -21,7 +21,7 @@ def get_departments(db: Session = Depends(get_db)):
 @router.get(
     "/{department_id}", response_model=Department, status_code=status.HTTP_200_OK
 )
-def get_department(department_id: int, db: Session = Depends(get_db)):
+def get_department(department_id: str, db: Session = Depends(get_db)):
     db_department = DepartmentService(db).get_department(department_id)
     if not db_department:
         raise HTTPException(status_code=404, detail="Department not found")
@@ -32,7 +32,7 @@ def get_department(department_id: int, db: Session = Depends(get_db)):
     "/{department_id}", response_model=Department, status_code=status.HTTP_200_OK
 )
 def update_department(
-    department_id: int, department: DepartmentUpdate, db: Session = Depends(get_db)
+    department_id: str, department: DepartmentUpdate, db: Session = Depends(get_db)
 ):
     updated_department = DepartmentService(db).update_department(
         department_id, department
@@ -43,7 +43,7 @@ def update_department(
 
 
 @router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_department(department_id: int, db: Session = Depends(get_db)):
+def delete_department(department_id: str, db: Session = Depends(get_db)):
     deleted_department = DepartmentService(db).delete_department(department_id)
     if not deleted_department:
         raise HTTPException(status_code=404, detail="Department not found")

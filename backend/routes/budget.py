@@ -1,6 +1,6 @@
 from services.budget import BudgetService
-from schemas.budget import BudgetCreate, BudgetUpdate
-from database.session import get_db
+from schemas.budget import BudgetCreate, BudgetUpdate, Budget as BudgetSchema
+from core.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/budget", tags=["Budget"])
 
 @router.post(
     "/",
-    response_model=BudgetCreate,
+    response_model=BudgetSchema,
     summary="Create a budget",
     status_code=status.HTTP_201_CREATED,
 )
@@ -23,7 +23,7 @@ def create_budget(budget: BudgetCreate, db: Session = Depends(get_db)):
 
 @router.get(
     "/",
-    response_model=List[BudgetCreate],
+    response_model=List[BudgetSchema],
     summary="Get all budgets",
     status_code=status.HTTP_200_OK,
 )
@@ -36,11 +36,11 @@ def get_budgets(db: Session = Depends(get_db)):
 
 @router.get(
     "/{budget_id}",
-    response_model=BudgetCreate,
+    response_model=BudgetSchema,
     summary="Get a budget",
     status_code=status.HTTP_200_OK,
 )
-def get_budget(budget_id: int, db: Session = Depends(get_db)):
+def get_budget(budget_id: str, db: Session = Depends(get_db)):
     try:
         return BudgetService(db).get_budget(budget_id)
     except Exception as e:
@@ -49,12 +49,12 @@ def get_budget(budget_id: int, db: Session = Depends(get_db)):
 
 @router.put(
     "/{budget_id}",
-    response_model=BudgetCreate,
+    response_model=BudgetSchema,
     summary="Update a budget",
     status_code=status.HTTP_200_OK,
 )
 def update_budget(
-    budget_id: int,
+    budget_id: str,
     budget: BudgetUpdate,
     db: Session = Depends(get_db),
 ):
@@ -69,7 +69,7 @@ def update_budget(
     summary="Delete a budget",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_budget(budget_id: int, db: Session = Depends(get_db)):
+def delete_budget(budget_id: str, db: Session = Depends(get_db)):
     try:
         deleted_budget = BudgetService(db).delete_budget(budget_id)
         if not deleted_budget:

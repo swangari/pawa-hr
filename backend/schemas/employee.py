@@ -8,7 +8,7 @@ class EmployeeBase(BaseModel):
     name: str
     email: EmailStr
     role: str
-    dept_uuid: str
+    dept_id: str
     contract_type: ContractType
     is_active: bool = True
 
@@ -21,18 +21,18 @@ class EmployeeUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
-    dept_uuid: Optional[str] = None
+    dept_id: Optional[str] = None
     contract_type: Optional[ContractType] = None
     is_active: Optional[bool] = None
 
 
 class EmployeeDelete(BaseModel):
-    uuid: str
+    id: str
 
 
 # Slim nested model used by DepartmentSchema to list employees without circular import
 class EmployeeNested(BaseModel):
-    uuid: str
+    id: str
     name: str
     email: EmailStr
     role: str
@@ -41,7 +41,7 @@ class EmployeeNested(BaseModel):
 
 
 class Employee(EmployeeBase):
-    uuid: str
+    id: str
     department_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime

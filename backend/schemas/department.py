@@ -19,7 +19,7 @@ class DepartmentUpdate(BaseModel):
 
 
 class Department(DepartmentBase):
-    uuid: str
+    id: str
     created_at: datetime
     updated_at: datetime
     employees: List["EmployeeNested"] = []

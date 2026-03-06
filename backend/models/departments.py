@@ -2,11 +2,12 @@ from core.database import Base
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from uuid import uuid4
 
 
 class Department(Base):
     __tablename__ = "departments"
-    uuid = Column(String(36), primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -15,4 +16,4 @@ class Department(Base):
     employees = relationship("Employee", back_populates="department")
 
     def __repr__(self):
-        return f"<Department(uuid={self.uuid}, name={self.name}, description={self.description})>"
+        return f"<Department(id={self.id}, name={self.name}, description={self.description})>"

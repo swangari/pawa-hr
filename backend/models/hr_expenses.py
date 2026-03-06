@@ -3,6 +3,8 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SQ
 from enum import Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from uuid import uuid4
+
 
 class ExpenseType(str, Enum):
     TRANSPORTATION = "transportation"
@@ -10,18 +12,20 @@ class ExpenseType(str, Enum):
     SALARY = "salary"
     AIRTIME = "airtime"
     RECRUITMENT = "recruitment"
+    EMPLOYEE = "employee"
     TRAINING = "training"
     SYSTEM = "system"
 
+
 class Expense(Base):
     __tablename__ = "expenses"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid4()))
     description = Column(String(255), nullable=False)
     amount = Column(Integer, nullable=False)
     expense_type = Column(SQLEnum(ExpenseType), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    budget_id = Column(Integer, ForeignKey("budgets.id"), nullable=False)
+    budget_id = Column(String(36), ForeignKey("budgets.id"), nullable=False)
 
     budget = relationship("Budget", back_populates="expenses")
 

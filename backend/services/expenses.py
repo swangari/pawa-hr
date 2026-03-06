@@ -20,21 +20,17 @@ class ExpenseService:
             self.db.rollback()
             raise e
 
-    def get_expense(self, expense_uuid: str) -> Optional[ExpenseModel]:
-        return (
-            self.db.query(ExpenseModel)
-            .filter(ExpenseModel.uuid == expense_uuid)
-            .first()
-        )
+    def get_expense(self, expense_id: str) -> Optional[ExpenseModel]:
+        return self.db.query(ExpenseModel).filter(ExpenseModel.id == expense_id).first()
 
     def get_expenses(self) -> List[ExpenseModel]:
         return self.db.query(ExpenseModel).all()
 
     def update_expense(
-        self, expense_uuid: str, expense: ExpenseUpdate
+        self, expense_id: str, expense: ExpenseUpdate
     ) -> Optional[ExpenseModel]:
         try:
-            db_expense = self.get_expense(expense_uuid)
+            db_expense = self.get_expense(expense_id)
             if not db_expense:
                 return None
             for field, value in expense.dict(exclude_unset=True).items():
@@ -46,9 +42,9 @@ class ExpenseService:
             self.db.rollback()
             raise e
 
-    def delete_expense(self, expense_uuid: str) -> Optional[ExpenseModel]:
+    def delete_expense(self, expense_id: str) -> Optional[ExpenseModel]:
         try:
-            db_expense = self.get_expense(expense_uuid)
+            db_expense = self.get_expense(expense_id)
             if not db_expense:
                 return None
             self.db.delete(db_expense)

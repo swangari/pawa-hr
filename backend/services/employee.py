@@ -1,4 +1,3 @@
-import uuid as _uuid
 from schemas.employee import EmployeeCreate, EmployeeUpdate
 from models.employee import Employee as EmployeeModel
 from models.departments import Department as DepartmentModel
@@ -15,18 +14,17 @@ class EmployeeService:
 
         department = (
             self.db.query(DepartmentModel)
-            .filter(DepartmentModel.uuid == employee.dept_uuid)
+            .filter(DepartmentModel.id == employee.dept_id)
             .first()
         )
         if not department:
             raise HTTPException(
                 status_code=404,
-                detail=f"Department with uuid '{employee.dept_uuid}' does not exist",
+                detail=f"Department with id '{employee.dept_id}' does not exist",
             )
 
         try:
             employee_data = employee.dict()
-            employee_data["uuid"] = str(_uuid.uuid4())
             db_employee = EmployeeModel(**employee_data)
             self.db.add(db_employee)
             self.db.commit()
@@ -36,21 +34,19 @@ class EmployeeService:
             self.db.rollback()
             raise e
 
-    def get_employee(self, employee_uuid: str) -> Optional[EmployeeModel]:
+    def get_employee(self, employee_id: str) -> Optional[EmployeeModel]:
         return (
-            self.db.query(EmployeeModel)
-            .filter(EmployeeModel.uuid == employee_uuid)
-            .first()
+            self.db.query(EmployeeModel).filter(EmployeeModel.id == employee_id).first()
         )
 
     def get_employees(self) -> List[EmployeeModel]:
         return self.db.query(EmployeeModel).all()
 
     def update_employee(
-        self, employee_uuid: str, employee: EmployeeUpdate
+        self, employee_id: str, employee: EmployeeUpdate
     ) -> Optional[EmployeeModel]:
         try:
-            db_employee = self.get_employee(employee_uuid)
+            db_employee = self.get_employee(employee_id)
             if not db_employee:
                 return None
             for field, value in employee.dict(exclude_unset=True).items():
@@ -62,9 +58,9 @@ class EmployeeService:
             self.db.rollback()
             raise e
 
-    def delete_employee(self, employee_uuid: str) -> Optional[EmployeeModel]:
+    def delete_employee(self, employee_id: str) -> Optional[EmployeeModel]:
         try:
-            db_employee = self.get_employee(employee_uuid)
+            db_employee = self.get_employee(employee_id)
             if not db_employee:
                 return None
             self.db.delete(db_employee)

@@ -40,7 +40,7 @@ def get_employees(db: Session = Depends(get_db)):
     summary="Get a single employee",
     status_code=status.HTTP_200_OK,
 )
-def get_employee(employee_id: int, db: Session = Depends(get_db)):
+def get_employee(employee_id: str, db: Session = Depends(get_db)):
     employee = EmployeeService(db).get_employee(employee_id)
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
@@ -54,7 +54,7 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
     status_code=status.HTTP_200_OK,
 )
 def update_employee(
-    employee_id: int, employee: EmployeeUpdate, db: Session = Depends(get_db)
+    employee_id: str, employee: EmployeeUpdate, db: Session = Depends(get_db)
 ):
     try:
         updated_employee = EmployeeService(db).update_employee(employee_id, employee)
@@ -70,7 +70,7 @@ def update_employee(
     summary="Delete an employee",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_employee(employee_id: int, db: Session = Depends(get_db)):
+def delete_employee(employee_id: str, db: Session = Depends(get_db)):
     try:
         deleted_employee = EmployeeService(db).delete_employee(employee_id)
         if not deleted_employee:
