@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from core.database import create_tables
+from fastapi.middleware.cors import CORSMiddleware
 from routes import employee, department, expenses, budget
 import settings
 
@@ -16,6 +17,14 @@ app = FastAPI(
 )
 
 create_tables()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(employee.router)
 app.include_router(department.router)

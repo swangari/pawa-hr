@@ -45,6 +45,7 @@ function SyncStore() {
               role: response.data.role,
               department_name: response.data.department_name,
               department_id: response.data.department_id,
+              contract_type: response.data.contract_type,
               name: response.data.name, // Ensure we have the full name from DB
             });
           } catch (error) {

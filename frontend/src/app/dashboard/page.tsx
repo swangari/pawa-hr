@@ -2,54 +2,16 @@
 
 import React from "react";
 import Sidebar from "@/app/components/sidebar";
+import api from "@/app/lib/api";
 
 export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-pawa-bg text-slate-900 font-display">
       {/* Sidebar */}
-      <Sidebar />
+      {/* <Sidebar /> */}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-pawa-border flex items-center justify-between px-8 sticky top-0 z-10">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative w-full max-w-md">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                search
-              </span>
-              <input
-                className="w-full bg-slate-100 border-none rounded-lg py-2 pl-10 pr-4 focus:ring-2 focus:ring-pawa-blue text-sm transition-all outline-none"
-                placeholder="Search employees or reports..."
-                type="text"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-sm font-semibold text-pawa-navy hover:bg-slate-200 transition-colors">
-              <span className="material-symbols-outlined text-[18px]">
-                swap_horiz
-              </span>
-              <span>Role: Admin</span>
-            </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-pawa-border">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-pawa-navy leading-tight">
-                  Sarah Jenkins
-                </p>
-                <p className="text-xs text-slate-500">HR Manager</p>
-              </div>
-              <div
-                className="size-10 rounded-full bg-slate-200 border-2 border-pawa-blue overflow-hidden bg-cover bg-center"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuC7DWOeachvH8_B52Eo-DB0IM6igFwzHWccWAe3t72HqFlkGk9jKIOvKzKvtX1Jkx0EYOFzZmtI4ltzKuUCfPn_vtSfR_6Hod_lr6_lIfkH-HoVJp_MxNy97WwINElJibWL6WOjo43Op1CQsfJikqc0jAAxCI_oQ7_E-oRuaaqr2uVP4N5fDma5DB7l3VvYDVmw4mK_ZxZKKlERb3OwWxy_t1Q58cDkBAFxpElNX52OKWaTf2GwqHSMSDY2-isdjl2wmDx5SWM3Q7nU')",
-                }}
-              ></div>
-            </div>
-          </div>
-        </header>
-
+      <main className="flex-1 overflow-y-auto">
         {/* Dashboard Content */}
         <div className="p-8 space-y-8">
           {/* KPI Row */}
@@ -302,7 +264,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4">
                     <div className="size-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                       <span className="material-symbols-outlined text-emerald-600">
-                        star
+                        grade
                       </span>
                     </div>
                     <div>

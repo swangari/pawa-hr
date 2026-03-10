@@ -2,6 +2,7 @@ import api from "@/app/lib/api";
 import { Expense } from "../types/expenses";
 import { Budget } from "../types/budget";
 import { Employee, Department } from "../types/people";
+import { Analytics } from "../types/analytics";
 
 
 export async function fetchExpenses() {
@@ -103,5 +104,10 @@ export async function deleteEmployee(employee: Employee) {
 export async function deleteDepartment(department: Department) {
   const response = await api.delete(`/departments/${department.id}`);
   return response.data;
+}
+
+export async function fetchAnalytics() {
+  const response = await api.get<{ data: Analytics }>("/analytics/");
+  return response.data.data;
 }
 

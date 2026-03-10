@@ -10,6 +10,7 @@ interface UserState {
   role: string | null;
   department_name?: string | null;
   department_id?: string | null;
+  contract_type?: string | null;
   setUser: (user: Partial<UserState>) => void;
   clearUser: () => void;
 }
@@ -25,6 +26,7 @@ export const useUserStore = create<UserState>()(
       role: null,
       department_name: null,
       department_id: null,
+      contract_type: null,
       setUser: (user) => set((state) => ({ ...state, ...user })),
       clearUser: () =>
         set({
@@ -36,6 +38,7 @@ export const useUserStore = create<UserState>()(
           role: null,
           department_name: null,
           department_id: null,
+          contract_type: null,
         }),
     }),
     {
