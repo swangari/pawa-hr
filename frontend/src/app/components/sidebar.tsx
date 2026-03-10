@@ -101,7 +101,9 @@ export default function Sidebar() {
             alt="Logo"
             width={sidebarOpen ? 68 : 32}
             height={sidebarOpen ? 36 : 24}
+            priority
             className="transition-all duration-300"
+            style={{ width: "auto", height: "auto" }}
           />
         </div>
 
