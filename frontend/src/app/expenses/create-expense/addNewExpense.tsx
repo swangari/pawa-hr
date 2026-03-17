@@ -108,7 +108,7 @@ export function AddExpenseModal({
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  $
+                  KES
                 </span>
                 <input
                   type="number"

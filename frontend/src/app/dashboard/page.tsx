@@ -125,7 +125,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        $450.00
+                        KES 450.00
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full">
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        $120.00
+                        KES 120.00
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 bg-amber-100 text-amber-600 text-xs font-bold rounded-full">
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        $1,200.00
+                        KES 1,200.00
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full">
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        $300.00
+                        KES 300.00
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-3 py-1 bg-rose-100 text-rose-600 text-xs font-bold rounded-full">

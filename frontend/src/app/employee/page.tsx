@@ -1,125 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Employee, EmployeeModal } from "./new-employee/addNewEmployee";
-
-const employeesData: Employee[] = [
-  {
-    id: "EMP001",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@pawait.com",
-    department: "Engineering",
-    employmentType: "Permanent",
-    salary: 95000,
-    airtimeAllowance: 50,
-    hireDate: "2022-01-15",
-    status: "Active",
-  },
-  {
-    id: "EMP002",
-    name: "Michael Chen",
-    email: "michael.chen@pawait.com",
-    department: "Sales",
-    employmentType: "Permanent",
-    salary: 78000,
-    airtimeAllowance: 50,
-    hireDate: "2021-08-22",
-    status: "Active",
-  },
-  {
-    id: "EMP003",
-    name: "Emily Rodriguez",
-    email: "emily.rodriguez@pawait.com",
-    department: "Marketing",
-    employmentType: "Contract",
-    salary: 65000,
-    airtimeAllowance: 50,
-    hireDate: "2023-03-10",
-    status: "Inactive",
-    terminationDate: "2025-12-15",
-  },
-  {
-    id: "EMP004",
-    name: "David Kim",
-    email: "david.kim@pawait.com",
-    department: "Engineering",
-    employmentType: "Permanent",
-    salary: 105000,
-    airtimeAllowance: 50,
-    hireDate: "2020-11-05",
-    status: "Active",
-  },
-  {
-    id: "EMP005",
-    name: "Amanda Foster",
-    email: "amanda.foster@pawait.com",
-    department: "HR",
-    employmentType: "Permanent",
-    salary: 72000,
-    airtimeAllowance: 50,
-    hireDate: "2022-06-18",
-    status: "Active",
-  },
-  {
-    id: "EMP006",
-    name: "James Wilson",
-    email: "james.wilson@pawait.com",
-    department: "Finance",
-    employmentType: "Permanent",
-    salary: 88000,
-    airtimeAllowance: 50,
-    hireDate: "2021-04-12",
-    status: "Active",
-  },
-  {
-    id: "EMP007",
-    name: "Lisa Thompson",
-    email: "lisa.thompson@pawait.com",
-    department: "Marketing",
-    employmentType: "Intern",
-    salary: 35000,
-    airtimeAllowance: 25,
-    hireDate: "2025-09-01",
-    status: "Active",
-  },
-  {
-    id: "EMP008",
-    name: "Robert Martinez",
-    email: "robert.martinez@pawait.com",
-    department: "Sales",
-    employmentType: "Contract",
-    salary: 70000,
-    airtimeAllowance: 50,
-    hireDate: "2023-07-20",
-    status: "Inactive",
-    terminationDate: "2026-01-30",
-  },
-  {
-    id: "EMP009",
-    name: "Jennifer Lee",
-    email: "jennifer.lee@pawait.com",
-    department: "Engineering",
-    employmentType: "Permanent",
-    salary: 98000,
-    airtimeAllowance: 50,
-    hireDate: "2022-02-28",
-    status: "Active",
-  },
-  {
-    id: "EMP010",
-    name: "Christopher Davis",
-    email: "christopher.davis@pawait.com",
-    department: "HR",
-    employmentType: "Permanent",
-    salary: 68000,
-    airtimeAllowance: 50,
-    hireDate: "2023-01-09",
-    status: "Active",
-  },
-];
+import { fetchEmployees } from "../api/api";
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>(employeesData);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
@@ -139,6 +25,44 @@ export default function EmployeesPage() {
     status: "Active" as "Active" | "Inactive",
     terminationDate: "",
   });
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const data: any[] = await fetchEmployees();
+        const mappedData = data.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department_name || "Engineering",
+          employmentType:
+            emp.contract_type?.toLowerCase() === "permanent"
+              ? "Permanent"
+              : emp.contract_type?.toLowerCase() === "intern"
+                ? "Intern"
+                : "Contract",
+          salary: emp.salary || 0,
+          airtimeAllowance: emp.airtimeAllowance || 0,
+          hireDate: emp.created_at || new Date().toISOString(),
+          status: emp.is_active ? "Active" : "Inactive",
+          terminationDate: emp.updated_at,
+        }));
+        setEmployees(mappedData as any);
+      } catch (error) {
+        console.error("Error fetching employees:", error);
+      }
+    };
+    loadEmployees();
+  }, []);
+
+  const updateEmployees = async () => {
+    try {
+      const data = await fetchEmployees();
+      setEmployees(data as any);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
 
   // Calculate metrics
   const totalHeadcount = employees.length;
@@ -339,7 +263,7 @@ export default function EmployeesPage() {
             </span>
           </div>
           <div className="text-4xl font-bold text-pawa-navy">
-            ${(totalPayroll / 1000000).toFixed(2)}M
+            KES {(totalPayroll / 1000000).toFixed(2)}M
           </div>
           <div className="text-sm text-gray-400 mt-1">Annual commitment</div>
         </div>
@@ -406,7 +330,7 @@ export default function EmployeesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    ${employee.salary.toLocaleString()}
+                    KES {employee.salary.toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -564,13 +488,13 @@ export default function EmployeesPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Annual Salary</span>
                       <span className="text-lg font-medium text-pawa-navy">
-                        ${selectedEmployee.salary.toLocaleString()}
+                        KES {selectedEmployee.salary.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Airtime Allowance</span>
                       <span className="text-lg font-medium text-pawa-navy">
-                        ${selectedEmployee.airtimeAllowance}
+                        KES {selectedEmployee.airtimeAllowance}
                       </span>
                     </div>
                     <div className="pt-3 border-t border-gray-200">
@@ -579,7 +503,7 @@ export default function EmployeesPage() {
                           Total Annual Compensation
                         </span>
                         <span className="text-xl font-bold text-pawa-blue">
-                          $
+                          KES
                           {(
                             selectedEmployee.salary +
                             selectedEmployee.airtimeAllowance

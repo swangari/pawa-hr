@@ -151,7 +151,7 @@ export default function ExpenditurePage() {
                     <div className="flex items-center gap-2">
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                          $
+                          KES
                         </span>
                         <input
                           type="number"
@@ -182,7 +182,7 @@ export default function ExpenditurePage() {
                     </div>
                   ) : (
                     <h3 className="text-2xl font-bold text-gray-900">
-                      ${totalBudget.toLocaleString()}
+                      KES {totalBudget.toLocaleString()}
                     </h3>
                   )}
                 </div>
@@ -191,7 +191,7 @@ export default function ExpenditurePage() {
                     Total Actual
                   </span>
                   <h3 className="text-2xl font-bold text-pawa-blue">
-                    ${totalActual.toLocaleString()}
+                    KES {totalActual.toLocaleString()}
                   </h3>
                 </div>
               </div>
@@ -208,7 +208,7 @@ export default function ExpenditurePage() {
                     {budgetPercentage.toFixed(1)}% of budget used
                   </span>
                   <span className="text-gray-400">
-                    ${(totalBudget - totalActual).toLocaleString()} remaining
+                    KES {(totalBudget - totalActual).toLocaleString()} remaining
                   </span>
                 </div>
               </div>
@@ -250,14 +250,14 @@ export default function ExpenditurePage() {
                         border: "none",
                         boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                       }}
-                      formatter={(value: any) => `$${value.toLocaleString()}`}
+                      formatter={(value: any) => `${value.toLocaleString()}`}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-sm text-gray-400">Total Spend</span>
                   <span className="text-xl font-bold text-gray-800">
-                    ${totalActual.toLocaleString()}
+                    KES {totalActual.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function ExpenditurePage() {
                       </span>
                     </div>
                     <span className="text-sm font-semibold text-gray-900">
-                      ${item.value.toLocaleString()}
+                      KES {item.value.toLocaleString()}
                     </span>
                   </div>
                 ))}
@@ -324,7 +324,7 @@ export default function ExpenditurePage() {
                     </div>
                   </div>
                   <div className="text-sm font-bold text-gray-900">
-                    ${expense.amount.toLocaleString()}
+                    KES {expense.amount.toLocaleString()}
                   </div>
                 </div>
               ))}

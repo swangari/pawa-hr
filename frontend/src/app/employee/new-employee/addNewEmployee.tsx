@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { addEmployee, updateEmployee } from "@/app/api/api";
 
 export interface Employee {
   id: string;
@@ -35,6 +36,16 @@ export function EmployeeModal({
   submitLabel,
 }: ModalProps) {
   if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addEmployee(formData);
+      onClose();
+    } catch (error) {
+      console.error("Error adding employee:", error);
+    }
+  };
 
   return (
     <>
