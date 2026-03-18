@@ -25,11 +25,19 @@ class BudgetService:
             select(Budget).where(Budget.id == budget_id)
         ).scalar_one_or_none()
 
+    def get_budget_by_month(self, month: str) -> Optional[Budget]:
+        return self.db.execute(
+            select(Budget).where(Budget.month == month)
+        ).scalar_one_or_none()
+
     def update_budget(self, budget_id: str, budget: BudgetUpdate) -> Optional[Budget]:
         db_budget = self.get_budget(budget_id)
         if not db_budget:
             return None
-        for field, value in budget.dict(exclude_unset=True).items():
+        
+        update_data = budget.dict(exclude_unset=True)
+            
+        for field, value in update_data.items():
             setattr(db_budget, field, value)
         self.db.commit()
         self.db.refresh(db_budget)

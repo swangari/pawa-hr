@@ -7,8 +7,9 @@ from models.hr_expenses import ExpenseType
 class ExpenseBase(BaseModel):
     description: str
     amount: int
-    expense_type: ExpenseType
+    expense_type: str
     budget_id: str
+    date: datetime
 
 
 class ExpenseCreate(ExpenseBase):
@@ -18,8 +19,9 @@ class ExpenseCreate(ExpenseBase):
 class ExpenseUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[int] = None
-    expense_type: Optional[ExpenseType] = None
+    expense_type: Optional[str] = None
     budget_id: Optional[str] = None
+    date: Optional[datetime] = None
 
 
 class Expense(ExpenseBase):

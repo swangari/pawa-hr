@@ -1,88 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { AddExpenseModal } from "./create-expense/addNewExpense";
+import { fetchEmployees, fetchBudgets, fetchExpenses, addExpense, addBudget, updateBudget } from "../api/api";
+import { Expense } from "../types/expenses";
+import { Budget } from "../types/budget";
+import { Employee } from "../types/people";
 
-const spendByCategoryData = [
-  { name: "Salaries", value: 450000, color: "#62C3DD" },
-  { name: "Recruitment", value: 45000, color: "#8B5CF6" },
-  { name: "Training", value: 32000, color: "#F59E0B" },
-  { name: "Welfare", value: 28000, color: "#10B981" },
-  { name: "Engagement", value: 15000, color: "#EF4444" },
-  { name: "Systems", value: 38000, color: "#3B82F6" },
-  { name: "Legal", value: 22000, color: "#EC4899" },
-];
-
-interface Expense {
-  id: number;
-  date: string;
-  category: string;
-  amount: number;
-  description: string;
-}
-
-const initialExpenses: Expense[] = [
-  {
-    id: 1,
-    date: "2026-03-01",
-    category: "Salaries",
-    amount: 150000,
-    description: "Monthly payroll - February",
-  },
-  {
-    id: 2,
-    date: "2026-02-28",
-    category: "Training",
-    amount: 5000,
-    description: "Leadership workshop",
-  },
-  {
-    id: 3,
-    date: "2026-02-25",
-    category: "Recruitment",
-    amount: 8000,
-    description: "Job posting and agency fees",
-  },
-  {
-    id: 4,
-    date: "2026-02-20",
-    category: "Welfare",
-    amount: 3500,
-    description: "Employee wellness program",
-  },
-  {
-    id: 5,
-    date: "2026-02-15",
-    category: "Systems",
-    amount: 12000,
-    description: "HRIS software subscription",
-  },
-];
 
 export default function ExpenditurePage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [totalBudget, setTotalBudget] = useState(750000);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
+
+  const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [empData, budgetData, expenseData] = await Promise.all([
+          fetchEmployees(),
+          fetchBudgets(),
+          fetchExpenses(),
+        ]);
+
+        setEmployees(empData as any);
+        setBudgets(budgetData as any);
+        const mappedExpenses = (expenseData as any).map((e: any) => ({
+          ...e,
+          category: e.expense_type.toLowerCase()
+        }));
+        
+        const budgetForMonth = (budgetData as any).find((b: any) => b.month === currentMonthStr);
+        setCurrentBudget(budgetForMonth || null);
+        
+        // Filter expenses for current month's budget
+        const filteredExpenses = budgetForMonth 
+          ? mappedExpenses.filter((e: any) => e.budget_id === budgetForMonth.id)
+          : [];
+        setExpenses(filteredExpenses);
+      } catch (error) {
+        console.error("Error fetching expenditure data:", error);
+      }
+    };
+    loadData();
+  }, []);
+
+  const totalPayroll = employees
+    .filter((emp) => emp.is_active)
+    .reduce((sum, emp) => sum + (emp.salary || 0) + (emp.airtime_allowance || 0), 0);
+
+  const totalBudget = currentBudget?.amount || 0;
+
+  const categoryTotals = expenses.reduce((acc: any, curr) => {
+    const cat = curr.category;
+    acc[cat] = (acc[cat] || 0) + curr.amount;
+    return acc;
+  }, {});
+
+  // Add Salaries to category data
+  const spendByCategoryData = [
+    { name: "Salaries", value: totalPayroll, color: "#62C3DD" },
+    { name: "Recruitment", value: categoryTotals["recruitment"] || 0, color: "#8B5CF6" },
+    { name: "Training", value: categoryTotals["training"] || 0, color: "#F59E0B" },
+    { name: "Welfare", value: categoryTotals["welfare"] || 0, color: "#10B981" },
+    { name: "Engagement", value: categoryTotals["engagement"] || 0, color: "#EF4444" },
+    { name: "Systems", value: categoryTotals["system"] || 0, color: "#3B82F6" },
+    { name: "Legal", value: categoryTotals["legal"] || 0, color: "#EC4899" },
+  ].filter(item => item.value > 0 || item.name === "Salaries"); // Always show Salaries
 
   const totalActual = spendByCategoryData.reduce(
     (sum, item) => sum + item.value,
     0,
   );
-  const budgetPercentage = Math.min((totalActual / totalBudget) * 100, 100);
+  const budgetPercentage = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0;
 
   const handleEditBudget = () => {
     setBudgetInput(totalBudget.toString());
     setIsEditingBudget(true);
   };
 
-  const handleSaveBudget = () => {
-    const newBudget = Number(budgetInput);
-    if (newBudget > 0) {
-      setTotalBudget(newBudget);
-      setIsEditingBudget(false);
+  const handleSaveBudget = async () => {
+    const newAmount = Number(budgetInput);
+    if (newAmount > 0) {
+      try {
+        if (currentBudget) {
+          // If updateBudget prevents amount change if already set, this will fail or ignore
+          const updated = await updateBudget(currentBudget, { amount: newAmount });
+          setCurrentBudget(updated as any);
+        } else {
+          const created = await addBudget({ month: currentMonthStr, amount: newAmount } as any);
+          setCurrentBudget(created as any);
+        }
+        setIsEditingBudget(false);
+      } catch (error) {
+        console.error("Failed to save budget:", error);
+        alert("Could not update budget. It might be immutable.");
+      }
     }
   };
 
@@ -91,13 +110,30 @@ export default function ExpenditurePage() {
     setBudgetInput("");
   };
 
-  const handleAddExpense = (newExpenseData: Omit<Expense, "id">) => {
-    const newExpense: Expense = {
-      id: Date.now(),
-      ...newExpenseData,
-    };
-    setExpenses([newExpense, ...expenses]);
-    setIsModalOpen(false);
+  const handleAddExpense = async (newExpenseData: any) => {
+    if (!currentBudget) {
+      alert("Please set a budget for this month first.");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...newExpenseData,
+        budget_id: currentBudget.id,
+        expense_type: newExpenseData.category.toLowerCase(),
+        date: new Date(newExpenseData.date).toISOString(),
+      };
+      const created = await addExpense(payload);
+      const mappedCreated = {
+        ...created,
+        category: (created as any).expense_type.toLowerCase()
+      };
+      setExpenses([mappedCreated as any, ...expenses]);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Failed to add expense:", error);
+      alert("Failed to add expense. Ensure the date is within the current budget month.");
+    }
   };
 
   return (
@@ -157,7 +193,7 @@ export default function ExpenditurePage() {
                           type="number"
                           value={budgetInput}
                           onChange={(e) => setBudgetInput(e.target.value)}
-                          className="pl-7 pr-3 py-1.5 border border-pawa-blue rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 w-40 text-lg font-semibold"
+                          className="pl-14 pr-3 py-1.5 border border-pawa-blue rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 w-44 text-lg font-semibold"
                           autoFocus
                         />
                       </div>

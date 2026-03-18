@@ -20,7 +20,7 @@ export function AddExpenseModal({
 }: AddExpenseModalProps) {
   const [formData, setFormData] = useState({
     date: "",
-    category: "Salaries",
+    category: "salary",
     amount: "",
     description: "",
   });
@@ -35,7 +35,7 @@ export function AddExpenseModal({
     });
     setFormData({
       date: "",
-      category: "Salaries",
+      category: "salary",
       amount: "",
       description: "",
     });
@@ -92,13 +92,13 @@ export function AddExpenseModal({
                 }
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all appearance-none cursor-pointer"
               >
-                <option value="Salaries">Salaries</option>
-                <option value="Recruitment">Recruitment</option>
-                <option value="Training">Training</option>
-                <option value="Welfare">Welfare</option>
-                <option value="Engagement">Engagement</option>
-                <option value="Systems">Systems</option>
-                <option value="Legal">Legal</option>
+                <option value="salary">Salaries</option>
+                <option value="recruitment">Recruitment</option>
+                <option value="training">Training</option>
+                <option value="welfare">Welfare</option>
+                <option value="engagement">Engagement</option>
+                <option value="system">Systems</option>
+                <option value="legal">Legal</option>
               </select>
             </div>
 
@@ -117,7 +117,7 @@ export function AddExpenseModal({
                     setFormData({ ...formData, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all"
+                  className="w-full pl-14 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all"
                   required
                 />
               </div>

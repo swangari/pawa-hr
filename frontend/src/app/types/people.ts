@@ -15,10 +15,8 @@ export interface Employee {
     role: string;
     is_active: boolean;
     contract_type: string;
-    start_date: Date;
-    end_date?: Date;
-    probation_end_date?: Date;
-    probation_period?: number;
-    probation_status?: string;
+    start_date: string;
+    salary?: number;
+    airtime_allowance?: number;
     
 }

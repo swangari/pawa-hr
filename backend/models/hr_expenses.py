@@ -7,14 +7,17 @@ from uuid import uuid4
 
 
 class ExpenseType(str, Enum):
-    TRANSPORTATION = "transportation"
-    ACCOMMODATION = "accommodation"
-    SALARY = "salary"
-    AIRTIME = "airtime"
-    RECRUITMENT = "recruitment"
-    EMPLOYEE = "employee"
-    TRAINING = "training"
-    SYSTEM = "system"
+    TRANSPORTATION = "TRANSPORTATION"
+    ACCOMMODATION = "ACCOMMODATION"
+    SALARY = "SALARY"
+    AIRTIME = "AIRTIME"
+    RECRUITMENT = "RECRUITMENT"
+    EMPLOYEE = "EMPLOYEE"
+    TRAINING = "TRAINING"
+    SYSTEM = "SYSTEM"
+    WELFARE = "WELFARE"
+    ENGAGEMENT = "ENGAGEMENT"
+    LEGAL = "LEGAL"
 
 
 class Expense(Base):
@@ -23,6 +26,7 @@ class Expense(Base):
     description = Column(String(255), nullable=False)
     amount = Column(Integer, nullable=False)
     expense_type = Column(SQLEnum(ExpenseType), nullable=False)
+    date = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     budget_id = Column(String(36), ForeignKey("budgets.id"), nullable=False)
