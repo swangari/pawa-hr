@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Float, Enum as SQLEnum
 from enum import Enum
 from sqlalchemy.orm import relationship
 from core.database import Base
@@ -22,6 +22,10 @@ class Employee(Base):
     role = Column(String(255), nullable=False)
     dept_id = Column(String(36), ForeignKey("departments.id"), nullable=False)
     contract_type = Column(SQLEnum(ContractType), nullable=False)
+    salary = Column(Float, default=0.0)
+    airtime_allowance = Column(Float, default=0.0)
+    hire_date = Column(DateTime, default=datetime.utcnow)
+    termination_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)

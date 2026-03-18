@@ -11,10 +11,14 @@ class EmployeeBase(BaseModel):
     dept_id: str
     contract_type: ContractType
     is_active: bool = True
+    salary: Optional[float] = 0.0
+    airtime_allowance: Optional[float] = 0.0
+    hire_date: Optional[datetime] = None
+    termination_date: Optional[datetime] = None
 
 
 class EmployeeCreate(EmployeeBase):
-    pass
+    id: Optional[str] = None
 
 
 class EmployeeUpdate(BaseModel):
@@ -24,6 +28,10 @@ class EmployeeUpdate(BaseModel):
     dept_id: Optional[str] = None
     contract_type: Optional[ContractType] = None
     is_active: Optional[bool] = None
+    salary: Optional[float] = None
+    airtime_allowance: Optional[float] = None
+    hire_date: Optional[datetime] = None
+    termination_date: Optional[datetime] = None
 
 
 class EmployeeDelete(BaseModel):
