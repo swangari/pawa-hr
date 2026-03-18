@@ -67,6 +67,11 @@ export default function Sidebar() {
       label: "Employees",
       icon: <span className="material-icons-outlined text-[20px]">groups</span>,
     },
+    {
+      href: "/department",
+      label: "Departments",
+      icon: <span className="material-icons-outlined text-[20px]">corporate_fare</span>,
+    },
   ];
 
   return (

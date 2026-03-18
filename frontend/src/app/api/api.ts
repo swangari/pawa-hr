@@ -2,6 +2,7 @@ import api from "@/app/lib/api";
 import { Expense } from "../types/expenses";
 import { Budget } from "../types/budget";
 import { Employee, Department } from "../types/people";
+export type { Employee, Department };
 import { Analytics } from "../types/analytics";
 
 export async function fetchExpenses() {
