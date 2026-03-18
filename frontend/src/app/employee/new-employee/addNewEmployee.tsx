@@ -8,6 +8,7 @@ export interface Employee {
   name: string;
   email: string;
   department: string;
+  role: string;
   employmentType: "Permanent" | "Contract" | "Intern";
   salary: number;
   airtimeAllowance: number;
@@ -24,6 +25,8 @@ interface ModalProps {
   formData: any;
   setFormData: (data: any) => void;
   submitLabel: string;
+  departments: { id: string; name: string }[];
+  isEdit?: boolean;
 }
 
 export function EmployeeModal({
@@ -34,6 +37,8 @@ export function EmployeeModal({
   formData,
   setFormData,
   submitLabel,
+  departments,
+  isEdit,
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -116,15 +121,32 @@ export function EmployeeModal({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm bg-white"
                 >
-                  <option value="Engineering">Engineering</option>
-                  <option value="Sales">Sales</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="HR">HR</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Operations">Operations</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm mb-2 font-medium text-gray-700">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value={formData.role}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                  placeholder="e.g. Software Engineer"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
                   Employment Type
@@ -152,7 +174,7 @@ export function EmployeeModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
-                  Annual Salary
+                  Monthly Salary
                 </label>
                 <input
                   type="number"
@@ -197,8 +219,11 @@ export function EmployeeModal({
                   onChange={(e) =>
                     setFormData({ ...formData, hireDate: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm ${
+                    isEdit ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
                   required
+                  disabled={isEdit}
                 />
               </div>
 
@@ -216,8 +241,13 @@ export function EmployeeModal({
                         terminationDate: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm ${
+                      isEdit && formData.terminationDate
+                        ? "bg-gray-100 cursor-not-allowed"
+                        : ""
+                    }`}
                     required
+                    disabled={!!(isEdit && formData.terminationDate)}
                   />
                 </div>
               )}

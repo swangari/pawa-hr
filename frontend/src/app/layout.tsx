@@ -45,6 +45,7 @@ export default function RootLayout({
 
       <body
         className={`${sourceSans.variable} ${instrumentSans.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <Provider>
           <div className="flex h-screen overflow-hidden">

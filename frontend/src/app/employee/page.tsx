@@ -2,10 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Employee, EmployeeModal } from "./new-employee/addNewEmployee";
-import { fetchEmployees } from "../api/api";
+import {
+  fetchEmployees,
+  addEmployee,
+  updateEmployee,
+  fetchDepartments,
+  Department,
+} from "../api/api";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
@@ -16,6 +23,7 @@ export default function EmployeesPage() {
     name: "",
     email: "",
     department: "Engineering",
+    role: "",
     employmentType: "Permanent" as "Permanent" | "Contract" | "Intern",
     salary: "",
     airtimeAllowance: "",
@@ -26,39 +34,58 @@ export default function EmployeesPage() {
     terminationDate: "",
   });
 
+  const mapEmployeeData = (emp: any) => ({
+    id: emp.id,
+    name: emp.name,
+    email: emp.email,
+    department: emp.department_name || "Engineering",
+    role: emp.role || "",
+    employmentType:
+      emp.contract_type?.toLowerCase() === "permanent"
+        ? "Permanent"
+        : emp.contract_type?.toLowerCase() === "intern"
+          ? "Intern"
+          : "Contract",
+    salary: emp.salary || 0,
+    airtimeAllowance: emp.airtime_allowance || 0,
+    hireDate: emp.hire_date || emp.created_at || new Date().toISOString(),
+    status: emp.is_active ? "Active" : "Inactive",
+    terminationDate: emp.termination_date || emp.updated_at,
+  });
+
+  const formatDateForInput = (dateString: string | undefined) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split("T")[0];
+    } catch (e) {
+      return "";
+    }
+  };
+
   useEffect(() => {
-    const loadEmployees = async () => {
+    const loadData = async () => {
       try {
-        const data: any[] = await fetchEmployees();
-        const mappedData = data.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-          department: emp.department_name || "Engineering",
-          employmentType:
-            emp.contract_type?.toLowerCase() === "permanent"
-              ? "Permanent"
-              : emp.contract_type?.toLowerCase() === "intern"
-                ? "Intern"
-                : "Contract",
-          salary: emp.salary || 0,
-          airtimeAllowance: emp.airtimeAllowance || 0,
-          hireDate: emp.created_at || new Date().toISOString(),
-          status: emp.is_active ? "Active" : "Inactive",
-          terminationDate: emp.updated_at,
-        }));
+        const [empData, deptData] = await Promise.all([
+          fetchEmployees(),
+          fetchDepartments(),
+        ]);
+
+        const mappedData = empData.map(mapEmployeeData);
         setEmployees(mappedData as any);
+        setDepartments(deptData as any);
       } catch (error) {
-        console.error("Error fetching employees:", error);
+        console.error("Error fetching data:", error);
       }
     };
-    loadEmployees();
+    loadData();
   }, []);
 
   const updateEmployees = async () => {
     try {
       const data = await fetchEmployees();
-      setEmployees(data as any);
+      const mappedData = data.map(mapEmployeeData);
+      setEmployees(mappedData as any);
     } catch (error) {
       console.error("Error fetching employees:", error);
     }
@@ -102,63 +129,71 @@ export default function EmployeesPage() {
     .filter((emp) => emp.status === "Active")
     .reduce((sum, emp) => sum + emp.salary + emp.airtimeAllowance, 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Generate new employee ID
-    const maxId = Math.max(
-      ...employees.map((emp) => parseInt(emp.id.replace("EMP", ""))),
-    );
-    const newId = `EMP${String(maxId + 1).padStart(3, "0")}`;
-
-    const newEmployee: Employee = {
-      id: newId,
+    const dept = departments.find((d) => d.name === formData.department);
+    const newEmployee = {
       name: formData.name,
       email: formData.email,
-      department: formData.department,
-      employmentType: formData.employmentType,
+      role: formData.role,
+      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39", // Use mapped ID or fallback to Engineering
+      contract_type: formData.employmentType.toLowerCase(),
       salary: Number(formData.salary),
-      airtimeAllowance: Number(formData.airtimeAllowance),
-      hireDate: formData.hireDate,
-      status: formData.status,
+      airtime_allowance: Number(formData.airtimeAllowance),
+      hire_date: formData.hireDate
+        ? new Date(formData.hireDate).toISOString()
+        : new Date().toISOString(),
+      is_active: formData.status === "Active",
       ...(formData.status === "Inactive" && formData.terminationDate
-        ? { terminationDate: formData.terminationDate }
+        ? { termination_date: new Date(formData.terminationDate).toISOString() }
         : {}),
     };
 
-    setEmployees([...employees, newEmployee]);
-    resetForm();
-    setIsAddModalOpen(false);
+    try {
+      await addEmployee(newEmployee as any);
+      await updateEmployees();
+      resetForm();
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error("Failed to add employee:", error);
+    }
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!editingEmployee) return;
 
-    const updatedEmployee: Employee = {
-      id: editingEmployee.id,
+    const dept = departments.find((d) => d.name === formData.department);
+    const updatedEmployeeData = {
       name: formData.name,
       email: formData.email,
-      department: formData.department,
-      employmentType: formData.employmentType,
+      role: formData.role,
+      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39",
+      contract_type: formData.employmentType.toLowerCase(),
       salary: Number(formData.salary),
-      airtimeAllowance: Number(formData.airtimeAllowance),
-      hireDate: formData.hireDate,
-      status: formData.status,
-      ...(formData.status === "Inactive" && formData.terminationDate
-        ? { terminationDate: formData.terminationDate }
+      airtime_allowance: Number(formData.airtimeAllowance),
+      hire_date: formData.hireDate
+        ? new Date(formData.hireDate).toISOString()
+        : !editingEmployee.hireDate,
+      is_active: formData.status === "Active",
+      ...(formData.status === "Inactive" &&
+      formData.terminationDate &&
+      !editingEmployee.terminationDate
+        ? { termination_date: new Date(formData.terminationDate).toISOString() }
         : {}),
     };
 
-    setEmployees(
-      employees.map((emp) =>
-        emp.id === editingEmployee.id ? updatedEmployee : emp,
-      ),
-    );
-    resetForm();
-    setIsEditModalOpen(false);
-    setEditingEmployee(null);
+    try {
+      await updateEmployee(editingEmployee as any, updatedEmployeeData as any);
+      await updateEmployees();
+      resetForm();
+      setIsEditModalOpen(false);
+      setEditingEmployee(null);
+    } catch (error) {
+      console.error("Failed to update employee:", error);
+    }
   };
 
   const resetForm = () => {
@@ -166,6 +201,7 @@ export default function EmployeesPage() {
       name: "",
       email: "",
       department: "Engineering",
+      role: "",
       employmentType: "Permanent",
       salary: "",
       airtimeAllowance: "",
@@ -265,7 +301,7 @@ export default function EmployeesPage() {
           <div className="text-4xl font-bold text-pawa-navy">
             KES {(totalPayroll / 1000000).toFixed(2)}M
           </div>
-          <div className="text-sm text-gray-400 mt-1">Annual commitment</div>
+          <div className="text-sm text-gray-400 mt-1">Monthly commitment</div>
         </div>
       </div>
 
@@ -283,6 +319,9 @@ export default function EmployeesPage() {
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Department
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Role
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Employment Type
@@ -311,6 +350,9 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {employee.department}
                   </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {employee.role}
+                  </td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${getEmploymentTypeBadgeColor(employee.employmentType)}`}
@@ -330,7 +372,7 @@ export default function EmployeesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    KES {employee.salary.toLocaleString()}
+                    KES {(employee.salary || 0).toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -373,7 +415,7 @@ export default function EmployeesPage() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Employee ID
                     </div>
-                    <div className="text-lg font-medium text-pawa-navy">
+                    <div className="text-sm font-medium text-pawa-navy">
                       {selectedEmployee.id}
                     </div>
                   </div>
@@ -399,7 +441,7 @@ export default function EmployeesPage() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Name
                     </div>
-                    <div className="text-lg font-medium text-pawa-navy">
+                    <div className="text-sm font-medium text-pawa-navy">
                       {selectedEmployee.name}
                     </div>
                   </div>
@@ -408,8 +450,17 @@ export default function EmployeesPage() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Email
                     </div>
-                    <div className="text-lg font-medium text-pawa-navy">
+                    <div className="text-sm font-medium text-pawa-navy">
                       {selectedEmployee.email}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Role
+                    </div>
+                    <div className="text-sm font-medium text-pawa-navy">
+                      {selectedEmployee.role}
                     </div>
                   </div>
                 </div>
@@ -419,7 +470,7 @@ export default function EmployeesPage() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Department
                     </div>
-                    <div className="text-lg font-medium text-pawa-navy">
+                    <div className="text-sm font-medium text-pawa-navy">
                       {selectedEmployee.department}
                     </div>
                   </div>
@@ -441,7 +492,7 @@ export default function EmployeesPage() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Date Joined
                     </div>
-                    <div className="text-lg font-medium text-pawa-navy">
+                    <div className="text-sm font-medium text-pawa-navy">
                       {new Date(selectedEmployee.hireDate).toLocaleDateString(
                         "en-US",
                         { year: "numeric", month: "long", day: "numeric" },
@@ -455,7 +506,7 @@ export default function EmployeesPage() {
                         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                           Termination Date
                         </div>
-                        <div className="text-lg font-medium text-pawa-navy">
+                        <div className="text-sm font-medium text-pawa-navy">
                           {new Date(
                             selectedEmployee.terminationDate,
                           ).toLocaleDateString("en-US", {
@@ -472,7 +523,7 @@ export default function EmployeesPage() {
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Tenure
                       </div>
-                      <div className="text-lg font-medium text-pawa-navy">
+                      <div className="text-sm font-medium text-pawa-navy">
                         {calculateTenure(selectedEmployee).toFixed(1)} years
                       </div>
                     </div>
@@ -486,27 +537,27 @@ export default function EmployeesPage() {
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Annual Salary</span>
-                      <span className="text-lg font-medium text-pawa-navy">
-                        KES {selectedEmployee.salary.toLocaleString()}
+                      <span className="text-gray-600">Monthly Salary</span>
+                      <span className="text-sm font-medium text-pawa-navy">
+                        KES {(selectedEmployee.salary || 0).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Airtime Allowance</span>
-                      <span className="text-lg font-medium text-pawa-navy">
+                      <span className="text-sm font-medium text-pawa-navy">
                         KES {selectedEmployee.airtimeAllowance}
                       </span>
                     </div>
                     <div className="pt-3 border-t border-gray-200">
                       <div className="flex justify-between">
                         <span className="font-semibold text-pawa-navy">
-                          Total Annual Compensation
+                          Total Monthly Compensation
                         </span>
-                        <span className="text-xl font-bold text-pawa-blue">
+                        <span className="text-sm font-bold text-pawa-blue">
                           KES
                           {(
-                            selectedEmployee.salary +
-                            selectedEmployee.airtimeAllowance
+                            (selectedEmployee.salary || 0) +
+                            (selectedEmployee.airtimeAllowance || 0)
                           ).toLocaleString()}
                         </span>
                       </div>
@@ -536,9 +587,12 @@ export default function EmployeesPage() {
                         ),
                         statutoryDeductions: "",
                         bonuses: "",
-                        hireDate: selectedEmployee.hireDate,
+                        hireDate: formatDateForInput(selectedEmployee.hireDate),
+                        role: selectedEmployee.role,
                         status: selectedEmployee.status,
-                        terminationDate: selectedEmployee.terminationDate || "",
+                        terminationDate: formatDateForInput(
+                          selectedEmployee.terminationDate,
+                        ),
                       });
                       setEditingEmployee(selectedEmployee);
                       setSelectedEmployee(null);
@@ -567,6 +621,8 @@ export default function EmployeesPage() {
         formData={formData}
         setFormData={setFormData}
         submitLabel="Add Employee"
+        departments={departments}
+        isEdit={false}
       />
 
       <EmployeeModal
@@ -577,6 +633,8 @@ export default function EmployeesPage() {
         formData={formData}
         setFormData={setFormData}
         submitLabel="Update Employee"
+        departments={departments}
+        isEdit={true}
       />
     </div>
   );
