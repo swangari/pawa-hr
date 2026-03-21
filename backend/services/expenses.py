@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.orm import Session
 from models.hr_expenses import Expense as ExpenseModel
 from models.budget import Budget
@@ -11,6 +12,12 @@ class ExpenseService:
 
     def create_expense(self, expense: ExpenseCreate) -> ExpenseModel:
         try:
+            # Check for past month
+            current_month = datetime.now().strftime("%Y-%m")
+            expense_month = expense.date.strftime("%Y-%m")
+            if expense_month < current_month:
+                raise ValueError("Cannot add expenses to a past month.")
+
             # Validate budget month matches expense date
             budget = self.db.query(Budget).filter(Budget.id == expense.budget_id).first()
             if not budget:
@@ -45,6 +52,13 @@ class ExpenseService:
             db_expense = self.get_expense(expense_id)
             if not db_expense:
                 return None
+            
+            # Check for past month
+            current_month = datetime.now().strftime("%Y-%m")
+            expense_month = db_expense.date.strftime("%Y-%m")
+            if expense_month < current_month:
+                raise ValueError("Past month expenses are immutable and cannot be updated.")
+
             for field, value in expense.dict(exclude_unset=True).items():
                 setattr(db_expense, field, value)
             self.db.commit()
@@ -59,6 +73,13 @@ class ExpenseService:
             db_expense = self.get_expense(expense_id)
             if not db_expense:
                 return None
+            
+            # Check for past month
+            current_month = datetime.now().strftime("%Y-%m")
+            expense_month = db_expense.date.strftime("%Y-%m")
+            if expense_month < current_month:
+                raise ValueError("Past month expenses are immutable and cannot be deleted.")
+
             self.db.delete(db_expense)
             self.db.commit()
             return db_expense
