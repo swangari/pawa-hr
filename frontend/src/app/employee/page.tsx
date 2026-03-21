@@ -34,6 +34,19 @@ export default function EmployeesPage() {
     terminationDate: "",
   });
 
+  // Consolidated Escape key handler
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedEmployee(null);
+        setIsAddModalOpen(false);
+        setIsEditModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
   const mapEmployeeData = (emp: any) => ({
     id: emp.id,
     name: emp.name,
@@ -137,7 +150,7 @@ export default function EmployeesPage() {
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39", // Use mapped ID or fallback to Engineering
+      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39", 
       contract_type: formData.employmentType.toLowerCase(),
       salary: Number(formData.salary),
       airtime_allowance: Number(formData.airtimeAllowance),
@@ -176,7 +189,7 @@ export default function EmployeesPage() {
       airtime_allowance: Number(formData.airtimeAllowance),
       hire_date: formData.hireDate
         ? new Date(formData.hireDate).toISOString()
-        : !editingEmployee.hireDate,
+        : editingEmployee.hireDate,
       is_active: formData.status === "Active",
       ...(formData.status === "Inactive" &&
       formData.terminationDate &&
@@ -381,20 +394,15 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Employee Details Modal */}
       {selectedEmployee && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] transition-all"
             onClick={() => setSelectedEmployee(null)}
           ></div>
-
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedEmployee(null)}
-          >
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none">
             <div
-              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -410,6 +418,7 @@ export default function EmployeesPage() {
               </div>
 
               <div className="p-6 space-y-6">
+                {/* Profile/ID Section */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
@@ -436,6 +445,7 @@ export default function EmployeesPage() {
                   </div>
                 </div>
 
+                {/* Basic Info */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
@@ -454,7 +464,10 @@ export default function EmployeesPage() {
                       {selectedEmployee.email}
                     </div>
                   </div>
+                </div>
 
+                {/* Work Details */}
+                <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Role
@@ -463,9 +476,7 @@ export default function EmployeesPage() {
                       {selectedEmployee.role}
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Department
@@ -474,7 +485,9 @@ export default function EmployeesPage() {
                       {selectedEmployee.department}
                     </div>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Employment Type
@@ -485,9 +498,7 @@ export default function EmployeesPage() {
                       {selectedEmployee.employmentType}
                     </span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-6">
                   <div>
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Date Joined
@@ -499,26 +510,27 @@ export default function EmployeesPage() {
                       )}
                     </div>
                   </div>
+                </div>
 
+                {/* Conditional Tenure/Termination */}
+                <div className="grid grid-cols-2 gap-6">
                   {selectedEmployee.status === "Inactive" &&
-                    selectedEmployee.terminationDate && (
-                      <div>
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                          Termination Date
-                        </div>
-                        <div className="text-sm font-medium text-pawa-navy">
-                          {new Date(
-                            selectedEmployee.terminationDate,
-                          ).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </div>
+                  selectedEmployee.terminationDate ? (
+                    <div>
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Termination Date
                       </div>
-                    )}
-
-                  {selectedEmployee.status === "Active" && (
+                      <div className="text-sm font-medium text-pawa-navy">
+                        {new Date(
+                          selectedEmployee.terminationDate,
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </div>
+                  ) : (
                     <div>
                       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Tenure
@@ -530,6 +542,7 @@ export default function EmployeesPage() {
                   )}
                 </div>
 
+                {/* Compensation Section */}
                 <div className="border-t border-gray-200 pt-6">
                   <h3 className="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">
                     Compensation Details
@@ -565,6 +578,7 @@ export default function EmployeesPage() {
                   </div>
                 </div>
 
+                {/* Action Buttons */}
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -25,6 +25,16 @@ export function AddExpenseModal({
     description: "",
   });
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleEsc);
+    }
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,12 +55,15 @@ export function AddExpenseModal({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-all opacity-100"
         onClick={onClose}
       ></div>
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <h2 className="text-xl font-semibold text-gray-800">
               Log New Expense
