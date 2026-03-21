@@ -12,7 +12,9 @@ import {
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
+    null,
+  );
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -30,6 +32,16 @@ export default function DepartmentsPage() {
   useEffect(() => {
     loadDepartments();
   }, []);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsModalOpen(false);
+    };
+    if (isModalOpen) {
+      window.addEventListener("keydown", handleEsc);
+    }
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isModalOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +61,9 @@ export default function DepartmentsPage() {
   };
 
   const handleDelete = async (dept: Department) => {
-    if (confirm(`Are you sure you want to delete the ${dept.name} department?`)) {
+    if (
+      confirm(`Are you sure you want to delete the ${dept.name} department?`)
+    ) {
       try {
         await deleteDepartment(dept);
         loadDepartments();
@@ -69,11 +83,13 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-pawa-navy">Departments</h1>
-          <p className="text-gray-500">Manage your organization's departments</p>
+          <p className="text-gray-500">
+            Manage your organization's departments
+          </p>
         </div>
         <button
           onClick={() => {
@@ -124,13 +140,17 @@ export default function DepartmentsPage() {
                       onClick={() => openEditModal(dept)}
                       className="hover:text-pawa-blue p-1 rounded-md transition-colors"
                     >
-                      <span className="material-icons-outlined !text-[20px]">edit</span>
+                      <span className="material-icons-outlined !text-[20px]">
+                        edit
+                      </span>
                     </button>
                     <button
                       onClick={() => handleDelete(dept)}
                       className="hover:text-red-500 p-1 rounded-md transition-colors"
                     >
-                      <span className="material-icons-outlined !text-[20px]">delete</span>
+                      <span className="material-icons-outlined !text-[20px]">
+                        delete
+                      </span>
                     </button>
                   </div>
                 </td>
@@ -141,12 +161,12 @@ export default function DepartmentsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <div
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
             onClick={() => setIsModalOpen(false)}
           ></div>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden pointer-events-auto transition-all">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold">
                 {editingDepartment ? "Edit Department" : "Add Department"}
