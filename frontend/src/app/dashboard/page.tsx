@@ -1,296 +1,574 @@
 "use client";
 
-import React from "react";
-import Sidebar from "@/app/components/sidebar";
-import api from "@/app/lib/api";
+import React, { useEffect, useState } from "react";
+import { fetchAnalytics } from "@/app/api/api";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
 
 export default function DashboardPage() {
-  return (
-    <div className="flex min-h-screen bg-pawa-bg text-slate-900 font-display">
-      {/* Sidebar */}
-      {/* <Sidebar /> */}
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState("2026-03"); // Default to current month
+  const [filterOpen, setFilterOpen] = useState(false);
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Dashboard Content */}
-        <div className="p-8 space-y-8">
-          {/* KPI Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-card-gray p-6 rounded-xl border border-pawa-border shadow-sm hover:shadow-md transition-shadow">
-              <p className="text-slate-500 text-sm font-medium mb-1">
-                Total Monthly Spend
-              </p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-pawa-navy">$45,200</h3>
-                <span className="text-xs font-bold text-emerald-500">+12%</span>
-              </div>
-              <div className="mt-4 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-pawa-blue h-full rounded-full"
-                  style={{ width: "70%" }}
-                ></div>
-              </div>
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        setLoading(true);
+        const analyticsData = await fetchAnalytics(selectedMonth);
+        setData(analyticsData);
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAnalytics();
+  }, [selectedMonth]);
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pawa-blue"></div>
+      </div>
+    );
+  }
+
+  // Transform data for charts
+  const headcountData = data?.department_headcount
+    ? Object.entries(data.department_headcount).map(([name, value], index) => ({
+        name,
+        value: value as number,
+        color: ["#62C3DD", "#8B5CF6", "#F59E0B", "#10B981"][index % 4],
+      }))
+    : [];
+
+  const retentionTrendsData = data?.retention_rate
+    ? Object.entries(data.retention_rate).map(([month, rate]) => ({
+        month,
+        rate: rate as number,
+      }))
+    : [];
+
+  const monthlyExpensesVsBudgetData = data?.monthly_expenses_vs_budget || [];
+  const expenseCategoriesOverTimeData =
+    data?.expense_categories_over_time || [];
+
+  return (
+    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Page Title & Filter */}
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1">
+              Real-time overview of your workforce metrics
+            </p>
+          </div>
+          <button className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600">
+            <span className="material-icons-outlined text-[20px]">
+              download
+            </span>
+            Export Report
+          </button>
+        </div>
+
+        {/* Custom Month Filter Dropdown */}
+        <div className="relative inline-block">
+          <button
+            onClick={() => setFilterOpen((o) => !o)}
+            className="px-3 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors h-[38px]"
+          >
+            <span className="opacity-60 flex justify-start items-center gap-1">
+              <svg
+                className="w-4 h-4 text-slate-400"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M2 4h12M4 8h8M6 12h4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="text-slate-700 text-xs font-normal font-sans">
+                Month
+              </span>
+            </span>
+            <span className="text-slate-700 text-xs font-normal font-sans capitalize">
+              {new Date(selectedMonth + "-01").toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <svg
+              className="w-4 h-4 text-slate-400"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 6.4L8 10l4-3.6"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          {filterOpen && (
+            <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
+              {[
+                "01",
+                "02",
+                "03",
+                "04",
+                "05",
+                "06",
+                "07",
+                "08",
+                "09",
+                "10",
+                "11",
+                "12",
+              ].map((m) => {
+                const val = `2026-${m}`;
+                const label = new Date(`2026-${m}-01`).toLocaleString(
+                  "default",
+                  {
+                    month: "long",
+                    year: "numeric",
+                  },
+                );
+                return (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setSelectedMonth(val);
+                      setFilterOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                      selectedMonth === val
+                        ? "text-pawa-blue font-semibold"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <div className="bg-card-gray p-6 rounded-xl border border-pawa-border shadow-sm hover:shadow-md transition-shadow">
-              <p className="text-slate-500 text-sm font-medium mb-1">
-                Employee Count
-              </p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-pawa-navy">124</h3>
-                <span className="text-xs font-bold text-rose-500">-2%</span>
-              </div>
-              <div className="mt-4 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-pawa-navy h-full rounded-full"
-                  style={{ width: "85%" }}
-                ></div>
-              </div>
-            </div>
-            <div className="bg-card-gray p-6 rounded-xl border border-pawa-border shadow-sm hover:shadow-md transition-shadow">
-              <p className="text-slate-500 text-sm font-medium mb-1">
-                Avg. Tenure
-              </p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-pawa-navy">2.4 Years</h3>
-                <span className="text-xs font-bold text-emerald-500">+5%</span>
-              </div>
-              <div className="mt-4 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-pawa-blue h-full rounded-full"
-                  style={{ width: "45%" }}
-                ></div>
-              </div>
-            </div>
-            <div className="bg-card-gray p-6 rounded-xl border border-pawa-border shadow-sm hover:shadow-md transition-shadow">
-              <p className="text-slate-500 text-sm font-medium mb-1">
-                Avg. Performance
-              </p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-pawa-navy">88%</h3>
-                <span className="text-xs font-bold text-emerald-500">+1%</span>
-              </div>
-              <div className="mt-4 w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-emerald-500 h-full rounded-full"
-                  style={{ width: "88%" }}
-                ></div>
-              </div>
+          )}
+        </div>
+      </div>
+
+      {/* Primary KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              Total headcount
+            </p>
+            <span className="material-icons-outlined text-pawa-blue bg-pawa-blue/10 p-2 rounded-lg">
+              group
+            </span>
+          </div>
+          <div className="text-3xl font-bold text-gray-900">
+            {data?.total_employees || 0}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Active Employees</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              Budget Used
+            </p>
+            <span className="material-icons-outlined text-purple-500 bg-purple-50 p-2 rounded-lg">
+              account_balance_wallet
+            </span>
+          </div>
+          <div className="text-3xl font-bold text-gray-900">
+            {data?.budget_used_percentage || 0}%
+          </div>
+          <p className="text-xs text-gray-400 mt-2 text-wrap">
+            Current month usage
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              Retention rate
+            </p>
+            <span className="material-icons-outlined text-emerald-500 bg-emerald-50 p-2 rounded-lg">
+              trending_up
+            </span>
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="text-3xl font-bold text-gray-900">
+              {Object.values(data?.retention_rate || {}).length > 0
+                ? `${(
+                    (Object.values(data.retention_rate).reduce(
+                      (a: any, b: any) => (a as number) + (b as number),
+                      0,
+                    ) as number) / Object.values(data.retention_rate).length
+                  ).toFixed(1)}%`
+                : "0%"}
             </div>
           </div>
+          <div className="mt-4 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-emerald-500"
+              style={{
+                width: `${
+                  Object.values(data?.retention_rate || {}).length > 0
+                    ? (Object.values(data.retention_rate).reduce(
+                        (a: any, b: any) => (a as number) + (b as number),
+                        0,
+                      ) as number) / Object.values(data.retention_rate).length
+                    : 0
+                }%`,
+              }}
+            ></div>
+          </div>
+        </div>
 
-          {/* Main Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* Recent Expenses Table */}
-            <div className="xl:col-span-2 bg-white rounded-xl border border-pawa-border shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-pawa-border flex justify-between items-center">
-                <h2 className="text-lg font-bold text-pawa-navy">
-                  Recent Expenses
-                </h2>
-                <button className="text-pawa-blue text-sm font-semibold hover:underline">
-                  View All
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Employee
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-pawa-border">
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
-                        Oct 12
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-pawa-navy whitespace-nowrap">
-                        Alex Rivera
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
-                          Travel
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        KES 450.00
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full">
-                          Approved
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
-                        Oct 11
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-pawa-navy whitespace-nowrap">
-                        Sarah Chen
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
-                          Software
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        KES 120.00
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-amber-100 text-amber-600 text-xs font-bold rounded-full">
-                          Pending
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
-                        Oct 10
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-pawa-navy whitespace-nowrap">
-                        James Wilson
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
-                          Equipment
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        KES 1,200.00
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-xs font-bold rounded-full">
-                          Approved
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
-                        Oct 09
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-pawa-navy whitespace-nowrap">
-                        Maria Garcia
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">
-                          Training
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-700 font-semibold whitespace-nowrap">
-                        KES 300.00
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 bg-rose-100 text-rose-600 text-xs font-bold rounded-full">
-                          Rejected
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              Average tenure
+            </p>
+            <span className="material-icons-outlined text-amber-500 bg-amber-50 p-2 rounded-lg">
+              work_outline
+            </span>
+          </div>
+          <div className="text-3xl font-bold text-gray-900">
+            {data?.average_tenure || 0}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Years</p>
+        </div>
+      </div>
+
+      {/* Main Analysis Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Retention Trends */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Retention Trends
+            </h2>
+            <p className="text-sm text-gray-400">Last 6 Months</p>
+          </div>
+          <div className="h-[260px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={retentionTrendsData}>
+                <defs>
+                  <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#62C3DD" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#62C3DD" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f0f0f0"
+                />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#9ca3af" }}
+                  domain={[0, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="#62C3DD"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorRate)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Headcount by Department */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border">
+          <h2 className="text-lg font-semibold text-gray-800 mb-6">
+            Headcount Distribution
+          </h2>
+          <div className="flex flex-col md:flex-row items-center justify-around gap-8">
+            <div className="relative" style={{ width: 220, height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={headcountData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="65%"
+                    outerRadius="90%"
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {headcountData.map((entry: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke="none"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-sm text-gray-400">Total</span>
+                <span className="text-2xl font-bold text-gray-800">
+                  {data?.total_employees || 0}
+                </span>
               </div>
             </div>
-            {/* Retention Overview */}
-            <div className="bg-white rounded-xl border border-pawa-border shadow-sm overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-pawa-border">
-                <h2 className="text-lg font-bold text-pawa-navy">
-                  Retention Overview
-                </h2>
-              </div>
-              <div className="p-6 flex-1 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-lg bg-pawa-blue/20 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-pawa-navy">
-                        trending_up
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-pawa-navy">
-                        Engineering
-                      </p>
-                      <p className="text-xs text-slate-500">94% Retention</p>
-                    </div>
+            <div className="space-y-3 flex-1 max-w-[200px]">
+              {headcountData.map((item: any) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    <span className="text-xs font-medium text-gray-600">
+                      {item.name}
+                    </span>
                   </div>
-                  <span className="text-sm font-bold text-emerald-500">
-                    Stable
+                  <span className="text-xs font-bold text-gray-900">
+                    {item.value}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-amber-600">
-                        person_search
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-pawa-navy">
-                        Marketing
-                      </p>
-                      <p className="text-xs text-slate-500">82% Retention</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold text-amber-500">
-                    At Risk
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-lg bg-rose-100 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-rose-600">
-                        group_off
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-pawa-navy">Sales</p>
-                      <p className="text-xs text-slate-500">76% Retention</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold text-rose-500">
-                    Critical
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-emerald-600">
-                        grade
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-pawa-navy">
-                        Customer Support
-                      </p>
-                      <p className="text-xs text-slate-500">98% Retention</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold text-emerald-500">
-                    Excellent
-                  </span>
-                </div>
-                <div className="pt-4 mt-auto">
-                  <div className="p-4 bg-pawa-navy/5 rounded-xl border border-dashed border-pawa-navy/20">
-                    <p className="text-xs text-slate-600 text-center italic">
-                      "Average turnover rate is 1.2% lower than the industry
-                      benchmark for Q3."
-                    </p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Bottom Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Monthly Expenses vs Budget */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border">
+          <h2 className="text-lg font-semibold text-gray-800 mb-6">
+            Monthly Expenses vs Budget
+          </h2>
+          <div className="h-[260px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyExpensesVsBudgetData}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f0f0f0"
+                />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickFormatter={(value) => `${value / 1000}k`}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f9fafb" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Legend verticalAlign="top" align="right" height={36} />
+                <Bar
+                  name="Budget"
+                  dataKey="budget"
+                  fill="#E2E8F0"
+                  radius={[4, 4, 0, 0]}
+                  barSize={32}
+                />
+                <Bar
+                  name="Expenses"
+                  dataKey="expenses"
+                  fill="#62C3DD"
+                  radius={[4, 4, 0, 0]}
+                  barSize={32}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Expense Categories over Time */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border">
+          <h2 className="text-lg font-semibold text-gray-800 mb-6">
+            Expense Categories over Time
+          </h2>
+          <div className="h-[260px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={expenseCategoriesOverTimeData}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f0f0f0"
+                />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickFormatter={(value) => `${value / 1000}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Legend verticalAlign="top" align="right" height={36} />
+                {/* Dynamically render lines for each category except 'month' */}
+                {expenseCategoriesOverTimeData.length > 0 &&
+                  Object.keys(expenseCategoriesOverTimeData[0])
+                    .filter((key) => key !== "month")
+                    .map((category, index) => (
+                      <Line
+                        key={category}
+                        type="monotone"
+                        dataKey={category}
+                        stroke={
+                          [
+                            "#62C3DD",
+                            "#8B5CF6",
+                            "#F59E0B",
+                            "#10B981",
+                            "#EF4444",
+                            "#3B82F6",
+                          ][index % 6]
+                        }
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Analytics Section */}
+      <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
+        <h2 className="text-xl font-bold text-gray-800 mb-8">
+          Specialized Metrics
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Offer Acceptance
+            </p>
+            <div className="text-4xl font-bold text-gray-900">87%</div>
+            <div className="mt-2 flex items-center gap-1 text-emerald-600 text-xs font-bold">
+              <span className="material-icons-outlined text-[14px]">
+                arrow_upward
+              </span>
+              +5% vs last Q
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Internal Promotions
+            </p>
+            <div className="text-4xl font-bold text-gray-900">23</div>
+            <p className="mt-2 text-xs text-gray-400">Total YTD</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Engagement Rate
+            </p>
+            <div className="text-4xl font-bold text-gray-900">94%</div>
+            <p className="mt-2 text-xs text-gray-400">Stable benchmark</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Employee Referrals
+            </p>
+            <div className="text-4xl font-bold text-gray-900">18%</div>
+            <p className="mt-2 text-xs text-gray-400">of new hires</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Training Completion
+            </p>
+            <div className="text-4xl font-bold text-gray-900">92%</div>
+            <p className="mt-2 text-xs text-gray-400">Across divisions</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p className="text-sm font-medium text-gray-500 mb-2">
+              Diversity Ratio
+            </p>
+            <div className="text-4xl font-bold text-gray-900">48%</div>
+            <p className="mt-2 text-xs text-gray-400">Women in leadership</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,13 +3,23 @@
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { AddExpenseModal } from "./create-expense/addNewExpense";
-import { fetchEmployees, fetchBudgets, fetchExpenses, addExpense, addBudget, updateBudget } from "../api/api";
+import {
+  fetchEmployees,
+  fetchBudgets,
+  fetchExpenses,
+  addExpense,
+  addBudget,
+  updateBudget,
+} from "../api/api";
 import { Expense } from "../types/expenses";
 import { Budget } from "../types/budget";
 import { Employee } from "../types/people";
 
-
 export default function ExpenditurePage() {
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState("All");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -33,14 +43,18 @@ export default function ExpenditurePage() {
         setBudgets(budgetData as any);
         const mappedExpenses = (expenseData as any).map((e: any) => ({
           ...e,
-          category: e.expense_type.toLowerCase()
+          category: e.expense_type.toLowerCase(),
         }));
-        
-        const budgetForMonth = (budgetData as any).find((b: any) => b.month === currentMonthStr);
+
+        setAllExpenses(mappedExpenses);
+
+        const budgetForMonth = (budgetData as any).find(
+          (b: any) => b.month === currentMonthStr,
+        );
         setCurrentBudget(budgetForMonth || null);
-        
-        // Filter expenses for current month's budget
-        const filteredExpenses = budgetForMonth 
+
+        // Initial expenses (for current month)
+        const filteredExpenses = budgetForMonth
           ? mappedExpenses.filter((e: any) => e.budget_id === budgetForMonth.id)
           : [];
         setExpenses(filteredExpenses);
@@ -51,9 +65,29 @@ export default function ExpenditurePage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (selectedMonth === "All") {
+      setExpenses(allExpenses);
+    } else {
+      const filtered = allExpenses.filter((e) =>
+        e.date.startsWith(selectedMonth),
+      );
+      setExpenses(filtered);
+    }
+  }, [selectedMonth, allExpenses]);
+
+  const availableMonths = Array.from(
+    new Set(allExpenses.map((e) => e.date.slice(0, 7))),
+  )
+    .sort()
+    .reverse();
+
   const totalPayroll = employees
     .filter((emp) => emp.is_active)
-    .reduce((sum, emp) => sum + (emp.salary || 0) + (emp.airtime_allowance || 0), 0);
+    .reduce(
+      (sum, emp) => sum + (emp.salary || 0) + (emp.airtime_allowance || 0),
+      0,
+    );
 
   const totalBudget = currentBudget?.amount || 0;
 
@@ -66,19 +100,36 @@ export default function ExpenditurePage() {
   // Add Salaries to category data
   const spendByCategoryData = [
     { name: "Salaries", value: totalPayroll, color: "#62C3DD" },
-    { name: "Recruitment", value: categoryTotals["recruitment"] || 0, color: "#8B5CF6" },
-    { name: "Training", value: categoryTotals["training"] || 0, color: "#F59E0B" },
-    { name: "Welfare", value: categoryTotals["welfare"] || 0, color: "#10B981" },
-    { name: "Engagement", value: categoryTotals["engagement"] || 0, color: "#EF4444" },
+    {
+      name: "Recruitment",
+      value: categoryTotals["recruitment"] || 0,
+      color: "#8B5CF6",
+    },
+    {
+      name: "Training",
+      value: categoryTotals["training"] || 0,
+      color: "#F59E0B",
+    },
+    {
+      name: "Welfare",
+      value: categoryTotals["welfare"] || 0,
+      color: "#10B981",
+    },
+    {
+      name: "Engagement",
+      value: categoryTotals["engagement"] || 0,
+      color: "#EF4444",
+    },
     { name: "Systems", value: categoryTotals["system"] || 0, color: "#3B82F6" },
     { name: "Legal", value: categoryTotals["legal"] || 0, color: "#EC4899" },
-  ].filter(item => item.value > 0 || item.name === "Salaries"); // Always show Salaries
+  ].filter((item) => item.value > 0 || item.name === "Salaries"); // Always show Salaries
 
   const totalActual = spendByCategoryData.reduce(
     (sum, item) => sum + item.value,
     0,
   );
-  const budgetPercentage = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0;
+  const budgetPercentage =
+    totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0;
 
   const handleEditBudget = () => {
     setBudgetInput(totalBudget.toString());
@@ -91,10 +142,15 @@ export default function ExpenditurePage() {
       try {
         if (currentBudget) {
           // If updateBudget prevents amount change if already set, this will fail or ignore
-          const updated = await updateBudget(currentBudget, { amount: newAmount });
+          const updated = await updateBudget(currentBudget, {
+            amount: newAmount,
+          });
           setCurrentBudget(updated as any);
         } else {
-          const created = await addBudget({ month: currentMonthStr, amount: newAmount } as any);
+          const created = await addBudget({
+            month: currentMonthStr,
+            amount: newAmount,
+          } as any);
           setCurrentBudget(created as any);
         }
         setIsEditingBudget(false);
@@ -109,6 +165,10 @@ export default function ExpenditurePage() {
     setIsEditingBudget(false);
     setBudgetInput("");
   };
+
+  const currentYearMonth = "2026-03";
+  const isPastMonth = selectedMonth !== "All" && selectedMonth < currentYearMonth;
+  const isFutureMonth = selectedMonth !== "All" && selectedMonth > currentYearMonth;
 
   const handleAddExpense = async (newExpenseData: any) => {
     if (!currentBudget) {
@@ -126,13 +186,15 @@ export default function ExpenditurePage() {
       const created = await addExpense(payload);
       const mappedCreated = {
         ...created,
-        category: (created as any).expense_type.toLowerCase()
+        category: (created as any).expense_type.toLowerCase(),
       };
       setExpenses([mappedCreated as any, ...expenses]);
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to add expense:", error);
-      alert("Failed to add expense. Ensure the date is within the current budget month.");
+      alert(
+        "Failed to add expense. Ensure the date is within the current budget month.",
+      );
     }
   };
 
@@ -146,13 +208,110 @@ export default function ExpenditurePage() {
             Track and manage your organization&apos;s spending
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-6 py-2.5 bg-[#62C3DD] text-white rounded-lg flex items-center gap-2 hover:bg-[#52B3CD] shadow-sm shadow-pawa-blue/20 transition-all font-medium"
-        >
-          <span className="material-icons-outlined text-[20px]">add</span>
-          New Expense
-        </button>
+        <div className="flex items-center gap-4">
+          {/* Custom Month Filter Dropdown */}
+          <div className="relative inline-block">
+            <button
+              onClick={() => setFilterOpen((o) => !o)}
+              className="px-3 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors h-[38px]"
+            >
+              <span className="opacity-60 flex justify-start items-center gap-1">
+                <svg
+                  className="w-4 h-4 text-slate-400"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 4h12M4 8h8M6 12h4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="text-slate-700 text-xs font-normal font-sans">
+                  Month
+                </span>
+              </span>
+              <span className="text-slate-700 text-xs font-normal font-sans capitalize">
+                {selectedMonth === "All"
+                  ? "All Months"
+                  : new Date(selectedMonth + "-01").toLocaleString("default", {
+                      month: "long",
+                    })}
+              </span>
+              <svg
+                className="w-4 h-4 text-slate-400"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 6.4L8 10l4-3.6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {filterOpen && (
+              <div className="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
+                <button
+                  onClick={() => {
+                    setSelectedMonth("All");
+                    setFilterOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                    selectedMonth === "All"
+                      ? "text-pawa-blue font-semibold"
+                      : "text-slate-700"
+                  }`}
+                >
+                  All Months
+                </button>
+                {[
+                  "01", "02", "03", "04", "05", "06",
+                  "07", "08", "09", "10", "11", "12"
+                ].map((m) => {
+                  const val = `2026-${m}`;
+                  const label = new Date(`2026-${m}-01`).toLocaleString("default", {
+                    month: "long",
+                  });
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setSelectedMonth(val);
+                        setFilterOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                        selectedMonth === val
+                          ? "text-pawa-blue font-semibold"
+                          : "text-slate-700"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={isPastMonth || isFutureMonth}
+            className={`px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all font-medium ${
+              isPastMonth || isFutureMonth
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                : "bg-[#62C3DD] text-white hover:bg-[#52B3CD] shadow-pawa-blue/20"
+            }`}
+          >
+            <span className="material-icons-outlined text-[20px]">add</span>
+            New Expense
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -164,7 +323,7 @@ export default function ExpenditurePage() {
               <h2 className="text-lg font-semibold text-gray-800">
                 Budget vs. Actual
               </h2>
-              {!isEditingBudget && (
+              {!isEditingBudget && !isPastMonth && !isFutureMonth && (
                 <button
                   onClick={handleEditBudget}
                   className="p-2 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded-full transition-all"
@@ -335,49 +494,63 @@ export default function ExpenditurePage() {
               </button>
             </div>
 
-            <div className="space-y-5 flex-1 overflow-y-auto">
-              {expenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex justify-between items-start group"
-                >
+              {isFutureMonth && expenses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-full text-pawa-blue">
+                    <span className="material-icons-outlined text-[40px]">
+                      upcoming
+                    </span>
+                  </div>
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold text-gray-800 group-hover:text-pawa-blue transition-colors">
-                      {expense.category}
-                    </div>
-                    <div className="text-xs text-gray-500 line-clamp-1">
-                      {expense.description}
-                    </div>
-                    <div className="text-[10px] text-gray-400 flex items-center gap-1">
-                      <span className="material-icons-outlined text-[12px]">
-                        calendar_today
-                      </span>
-                      {new Date(expense.date).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </div>
-                  </div>
-                  <div className="text-sm font-bold text-gray-900">
-                    KES {expense.amount.toLocaleString()}
+                    <p className="text-gray-900 font-semibold text-sm">Future Period</p>
+                    <p className="text-xs text-gray-500 max-w-[200px] leading-relaxed">
+                      Spending has not yet started for this month.
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {expenses.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
-                <div className="p-3 bg-gray-50 rounded-full">
-                  <span className="material-icons-outlined text-gray-300 text-[32px]">
-                    receipt_long
-                  </span>
+              ) : expenses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
+                  <div className="p-3 bg-gray-50 rounded-full">
+                    <span className="material-icons-outlined text-gray-300 text-[32px]">
+                      receipt_long
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    No recent expenses found
+                  </p>
                 </div>
-                <p className="text-sm text-gray-400">
-                  No recent expenses found
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-5 flex-1 overflow-y-auto">
+                  {expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex justify-between items-start group"
+                    >
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-gray-800 group-hover:text-pawa-blue transition-colors">
+                          {expense.category}
+                        </div>
+                        <div className="text-xs text-gray-500 line-clamp-1">
+                          {expense.description}
+                        </div>
+                        <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <span className="material-icons-outlined text-[12px]">
+                            calendar_today
+                          </span>
+                          {new Date(expense.date).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </div>
+                      </div>
+                      <div className="text-sm font-bold text-gray-900">
+                        KES {expense.amount.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
       </div>
