@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from core.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
-from routes import employee, department, expenses, budget
+from routes import employee, department, expenses, budget, analytics
 import settings
 
 app = FastAPI(
@@ -30,6 +30,7 @@ app.include_router(employee.router)
 app.include_router(department.router)
 app.include_router(expenses.router)
 app.include_router(budget.router)
+app.include_router(analytics.router)
 
 
 @app.get("/", include_in_schema=False)
