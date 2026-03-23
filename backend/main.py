@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from core.database import create_tables
 from fastapi.middleware.cors import CORSMiddleware
 from routes import employee, department, expenses, budget, analytics
 import settings
@@ -16,7 +15,8 @@ app = FastAPI(
     },
 )
 
-create_tables()
+# Table creation is now handled by Alembic in start.sh
+# create_tables()
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,3 +36,8 @@ app.include_router(analytics.router)
 @app.get("/", include_in_schema=False)
 def read_root():
     return RedirectResponse(url="/docs")
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}

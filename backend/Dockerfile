@@ -1,28 +1,29 @@
 FROM python:3.11-slim
 
-ENV PYTHONUNBUFFERED True
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/code
+
 WORKDIR /code
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-mysql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
 COPY . .
 
-RUN pip install --upgrade pip && pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+RUN chmod +x /code/start.sh && \
+    useradd -m appuser && \
+    chown -R appuser:appuser /code
 
-ENV PYTHONPATH=/code
+USER appuser
 
-# Cloud Run listens on port 8080 by default. --proxy-headers so redirects use HTTPS behind Nginx/certbot.
-CMD exec uvicorn main:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips "*"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
-
-# TODOS: add health check in dockerfile
-# TODOS: add liveness and readiness probes in dockerfile
-# TODOS: add security headers in dockerfile
-# TODOS: add secrets management in dockerfile
-# TODOS: add monitoring in dockerfile
-# TODOS: add logging in dockerfile
-# TODOS: add tracing in dockerfile
-# TODOS: add metrics in dockerfile
-# TODOS: add alerting in dockerfile
-# TODOS: add monitoring in dockerfile
-# TODOS: add logging in dockerfile
-# TODOS: add tracing in dockerfile
-# TODOS: add metrics in dockerfile
-# TODOS: add alerting in dockerfile
+# Entrypoint to handle migrations and startup
+ENTRYPOINT ["/code/start.sh"]
