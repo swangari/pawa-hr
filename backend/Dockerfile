@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
-RUN chmod +x /code/start.sh && \
+RUN chmod +x /code/scripts/start.sh && \
     useradd -m appuser && \
     chown -R appuser:appuser /code
 
@@ -27,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Entrypoint to handle migrations and startup
-ENTRYPOINT ["/code/start.sh"]
+ENTRYPOINT ["/code/scripts/start.sh"]
