@@ -29,7 +29,7 @@ def calculate_department_headcount(db: Session, month: str = None) -> Dict[str, 
             db.query(Employee)
             .filter(Employee.dept_id == dept.id, Employee.hire_date <= last_day)
             .filter(
-                (Employee.termination_date is None)
+                (Employee.termination_date.is_(None))
                 | (Employee.termination_date > last_day)
             )
             .count()
@@ -160,7 +160,7 @@ def calculate_average_tenure(db: Session, month: str = None) -> float:
         db.query(Employee)
         .filter(Employee.hire_date <= last_day)
         .filter(
-            (Employee.termination_date == None) | (Employee.termination_date > last_day)
+            (Employee.termination_date.is_(None)) | (Employee.termination_date > last_day)
         )
         .all()
     )
