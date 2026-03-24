@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=mysql+pymysql://root:root@db:3306/pawa_hr
       - MYSQL_HOST=db
       - ALLOWED_HOSTS=["*"]
+      - ALLOWED_ORIGINS=http://localhost:3000,http://10.164.88.189:3000
     depends_on:
       db:
         condition: service_healthy

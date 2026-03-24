@@ -4,3 +4,4 @@ __pycache__/
 versions/
 backend/.DS_Store
 .DS_Store
+*.sql

@@ -18,6 +18,6 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL")
 DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD")
 
-_default_origins = "http://localhost:3000"
+_default_origins = "http://localhost:3000, http://10.164.88.189:3000"
 _raw = os.getenv("ALLOWED_ORIGINS", _default_origins).strip()
 ALLOWED_ORIGINS = [o.strip() for o in _raw.split(",") if o.strip()]

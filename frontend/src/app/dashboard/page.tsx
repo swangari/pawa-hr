@@ -80,12 +80,12 @@ export default function DashboardPage() {
               Real-time overview of your workforce metrics
             </p>
           </div>
-          <button className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600">
+          {/* <button className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600">
             <span className="material-icons-outlined text-[20px]">
               download
             </span>
             Export Report
-          </button>
+          </button> */}
         </div>
 
         {/* Custom Month Filter Dropdown */}
@@ -279,7 +279,13 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-400">Last 6 Months</p>
           </div>
           <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={0}
+              minHeight={0}
+              debounce={50}
+            >
               <AreaChart data={retentionTrendsData}>
                 <defs>
                   <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
@@ -331,7 +337,13 @@ export default function DashboardPage() {
           </h2>
           <div className="flex flex-col md:flex-row items-center justify-around gap-8">
             <div className="relative" style={{ width: 220, height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={0}
+                debounce={50}
+              >
                 <PieChart>
                   <Pie
                     data={headcountData}
@@ -399,7 +411,13 @@ export default function DashboardPage() {
             Monthly Expenses vs Budget
           </h2>
           <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={0}
+              minHeight={0}
+              debounce={50}
+            >
               <BarChart data={monthlyExpensesVsBudgetData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -452,7 +470,13 @@ export default function DashboardPage() {
             Expense Categories over Time
           </h2>
           <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={0}
+              minHeight={0}
+              debounce={50}
+            >
               <LineChart data={expenseCategoriesOverTimeData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
