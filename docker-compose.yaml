@@ -3,10 +3,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
     ports:
       - "8080:8080"
+    volumes:
+      - ./backend:/code
     environment:
-      - DATABASE_URL=mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${DB_NAME}
+      - DATABASE_URL=mysql+pymysql://root:root@db:3306/pawa_hr
       - MYSQL_HOST=db
       - ALLOWED_HOSTS=["*"]
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://[IP_ADDRESS],http://localhost:3000}
@@ -23,6 +27,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - ./frontend/.env
     volumes:
       - ./frontend:/app
       - /app/node_modules
