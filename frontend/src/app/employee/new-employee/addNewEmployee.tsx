@@ -9,7 +9,7 @@ export interface Employee {
   email: string;
   department: string;
   role: string;
-  employmentType: "Permanent" | "Contract" | "Intern";
+  employmentType: "Permanent" | "Contract" | "Graduate Trainee";
   salary: number;
   airtimeAllowance: number;
   hireDate: string;
@@ -69,9 +69,7 @@ export function EmployeeModal({
         onClick={onClose}
       ></div>
 
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-      >
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
           className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
@@ -90,6 +88,25 @@ export function EmployeeModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
+                  Staff Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, id: e.target.value })
+                  }
+                  placeholder="e.g. EMP001"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm ${
+                    isEdit ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
+                  required
+                  disabled={isEdit}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-2 font-medium text-gray-700">
                   Full Name
                 </label>
                 <input
@@ -103,7 +120,9 @@ export function EmployeeModal({
                   required
                 />
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
                   Email
@@ -119,9 +138,7 @@ export function EmployeeModal({
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
                   Department
@@ -140,7 +157,9 @@ export function EmployeeModal({
                   ))}
                 </select>
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
                   Role
@@ -156,9 +175,7 @@ export function EmployeeModal({
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-2 font-medium text-gray-700">
                   Employment Type
@@ -171,14 +188,14 @@ export function EmployeeModal({
                       employmentType: e.target.value as
                         | "Permanent"
                         | "Contract"
-                        | "Intern",
+                        | "Graduate Trainee",
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue text-sm bg-white"
                 >
                   <option value="Permanent">Permanent</option>
                   <option value="Contract">Contract</option>
-                  <option value="Intern">Intern</option>
+                  <option value="Graduate Trainee">Graduate Trainee</option>
                 </select>
               </div>
             </div>

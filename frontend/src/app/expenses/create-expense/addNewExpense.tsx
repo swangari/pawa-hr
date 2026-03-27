@@ -98,21 +98,31 @@ export function AddExpenseModal({
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Category
               </label>
-              <select
-                value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all appearance-none cursor-pointer"
-              >
-                <option value="salary">Salaries</option>
-                <option value="recruitment">Recruitment</option>
-                <option value="training">Training</option>
-                <option value="welfare">Welfare</option>
-                <option value="engagement">Engagement</option>
-                <option value="system">Systems</option>
-                <option value="legal">Legal</option>
-              </select>
+              <div className="relative">
+                <input
+                  list="expense-categories"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  placeholder="Select or type a category"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all"
+                  required
+                />
+                <datalist id="expense-categories">
+                  <option value="salary">Salaries</option>
+                  <option value="recruitment">Recruitment</option>
+                  <option value="training">Training</option>
+                  <option value="welfare">Welfare</option>
+                  <option value="system">Systems</option>
+                  <option value="legal">Legal</option>
+                </datalist>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <span className="material-icons-outlined text-[20px]">
+                    arrow_drop_down
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div>

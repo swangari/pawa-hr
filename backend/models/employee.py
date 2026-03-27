@@ -10,7 +10,6 @@ class ContractType(str, Enum):
     PERMANENT = "permanent"
     CONTRACT = "contract"
     GRADUATE_TRAINEE = "graduate_trainee"
-    INTERN = "intern"
 
 
 class Employee(Base):

@@ -20,11 +20,15 @@ export default function EmployeesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
+    id: "",
     name: "",
     email: "",
     department: "Engineering",
     role: "",
-    employmentType: "Permanent" as "Permanent" | "Contract" | "Intern",
+    employmentType: "Permanent" as
+      | "Permanent"
+      | "Contract"
+      | "Graduate Trainee",
     salary: "",
     airtimeAllowance: "",
     statutoryDeductions: "",
@@ -56,9 +60,9 @@ export default function EmployeesPage() {
     employmentType:
       emp.contract_type?.toLowerCase() === "permanent"
         ? "Permanent"
-        : emp.contract_type?.toLowerCase() === "intern"
-          ? "Intern"
-          : "Contract",
+        : emp.contract_type?.toLowerCase() === "contract"
+          ? "Contract"
+          : "Graduate Trainee",
     salary: emp.salary || 0,
     airtimeAllowance: emp.airtime_allowance || 0,
     hireDate: emp.hire_date || emp.created_at || new Date().toISOString(),
@@ -147,10 +151,11 @@ export default function EmployeesPage() {
 
     const dept = departments.find((d) => d.name === formData.department);
     const newEmployee = {
+      id: formData.id,
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39", 
+      dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39",
       contract_type: formData.employmentType.toLowerCase(),
       salary: Number(formData.salary),
       airtime_allowance: Number(formData.airtimeAllowance),
@@ -211,6 +216,7 @@ export default function EmployeesPage() {
 
   const resetForm = () => {
     setFormData({
+      id: "",
       name: "",
       email: "",
       department: "Engineering",
@@ -232,7 +238,7 @@ export default function EmployeesPage() {
         return "bg-blue-100 text-blue-700";
       case "Contract":
         return "bg-orange-100 text-orange-700";
-      case "Intern":
+      case "Graduate Trainee":
         return "bg-purple-100 text-purple-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -591,6 +597,7 @@ export default function EmployeesPage() {
                     type="button"
                     onClick={() => {
                       setFormData({
+                        id: selectedEmployee.id,
                         name: selectedEmployee.name,
                         email: selectedEmployee.email,
                         department: selectedEmployee.department,

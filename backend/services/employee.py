@@ -25,16 +25,9 @@ class EmployeeService:
 
         try:
             employee_data = employee.dict()
-            if not employee_data.get('id'):
-                latest = self.db.query(EmployeeModel).filter(EmployeeModel.id.like('EMP%')).order_by(EmployeeModel.id.desc()).first()
-                if latest and latest.id.startswith('EMP'):
-                    try:
-                        num = int(latest.id.replace('EMP', ''))
-                        employee_data['id'] = f"EMP{num + 1:03d}"
-                    except ValueError:
-                        employee_data['id'] = "EMP001"
-                else:
-                    employee_data['id'] = "EMP001"
+
+            if not employee_data.get("id"):
+                pass
 
             db_employee = EmployeeModel(**employee_data)
             self.db.add(db_employee)
