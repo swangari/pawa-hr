@@ -17,6 +17,8 @@ router = APIRouter(prefix="/expenses", tags=["Expenses"])
 def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
     try:
         return ExpenseService(db).create_expense(expense)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -30,6 +32,8 @@ def create_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
 def get_expenses(db: Session = Depends(get_db)):
     try:
         return ExpenseService(db).get_expenses()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

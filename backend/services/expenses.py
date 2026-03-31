@@ -16,7 +16,7 @@ class ExpenseService:
             current_month = datetime.now().strftime("%Y-%m")
             expense_month = expense.date.strftime("%Y-%m")
             if expense_month < current_month:
-                raise ValueError("Cannot add expenses to a past month.")
+                raise ValueError(f"Cannot add expenses to a past month ({expense_month}). Current month is {current_month}.")
 
             # Validate budget month matches expense date
             budget = self.db.query(Budget).filter(Budget.id == expense.budget_id).first()

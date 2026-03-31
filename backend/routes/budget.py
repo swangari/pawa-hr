@@ -17,6 +17,8 @@ router = APIRouter(prefix="/budget", tags=["Budget"])
 def create_budget(budget: BudgetCreate, db: Session = Depends(get_db)):
     try:
         return BudgetService(db).create_budget(budget)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
