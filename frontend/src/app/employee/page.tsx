@@ -6,6 +6,7 @@ import {
   fetchEmployees,
   addEmployee,
   updateEmployee,
+  deleteEmployee,
   fetchDepartments,
   Department,
 } from "../api/api";
@@ -18,6 +19,8 @@ export default function EmployeesPage() {
   );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState("2026-Y");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
     id: "",
@@ -67,7 +70,8 @@ export default function EmployeesPage() {
     airtimeAllowance: emp.airtime_allowance || 0,
     hireDate: emp.hire_date || emp.created_at || new Date().toISOString(),
     status: emp.is_active ? "Active" : "Inactive",
-    terminationDate: emp.termination_date || emp.updated_at,
+    terminationDate:
+      emp.termination_date || (emp.is_active ? "" : emp.updated_at),
   });
 
   const formatDateForInput = (dateString: string | undefined) => {
@@ -108,43 +112,91 @@ export default function EmployeesPage() {
     }
   };
 
-  // Calculate metrics
-  const totalHeadcount = employees.length;
-  const activeEmployees = employees.filter(
-    (emp) => emp.status === "Active",
+  // Calculate period bounds
+  const getPeriodBounds = (period: string) => {
+    if (period === "All")
+      return { start: new Date("1970-01-01"), end: new Date("2099-12-31") };
+
+    const year = parseInt(period.split("-")[0]);
+    if (period.includes("-Q")) {
+      const q = parseInt(period.split("-Q")[1]);
+      const startMonth = (q - 1) * 3;
+      const endMonth = q * 3 - 1;
+      return {
+        start: new Date(year, startMonth, 1),
+        // Last day of end month
+        end: new Date(year, endMonth + 1, 0, 23, 59, 59),
+      };
+    } else if (period.includes("-Y")) {
+      return {
+        start: new Date(year, 0, 1),
+        end: new Date(year, 11, 31, 23, 59, 59),
+      };
+    } else {
+      const month = parseInt(period.split("-")[1]) - 1;
+      return {
+        start: new Date(year, month, 1),
+        end: new Date(year, month + 1, 0, 23, 59, 59),
+      };
+    }
+  };
+
+  const periodBounds = getPeriodBounds(selectedMonth);
+
+  // Helper: employee is active as of end of period
+  const isEmpActiveAtEnd = (emp: Employee) => {
+    const hireD = new Date(emp.hireDate);
+    if (hireD > periodBounds.end) return false;
+
+    if (emp.status === "Inactive" && emp.terminationDate) {
+      const termD = new Date(emp.terminationDate);
+      if (termD <= periodBounds.end) return false;
+    }
+    return true;
+  };
+
+  const totalHeadcount = employees.filter(
+    (emp) => new Date(emp.hireDate) <= periodBounds.end,
   ).length;
-  const permanentEmployees = employees.filter(
-    (emp) => emp.employmentType === "Permanent" && emp.status === "Active",
+  const activeEmployeesList = employees.filter(isEmpActiveAtEnd);
+  const activeEmployees = activeEmployeesList.length;
+
+  const permanentEmployees = activeEmployeesList.filter(
+    (emp) => emp.employmentType === "Permanent",
   ).length;
-  const contractEmployees = employees.filter(
-    (emp) => emp.employmentType === "Contract" && emp.status === "Active",
+  const contractEmployees = activeEmployeesList.filter(
+    (emp) => emp.employmentType === "Contract",
   ).length;
 
-  // Calculate average tenure in years
   const calculateTenure = (emp: Employee) => {
     const start = new Date(emp.hireDate);
     const end =
       emp.status === "Inactive" && emp.terminationDate
         ? new Date(emp.terminationDate)
-        : new Date();
+        : periodBounds.end < new Date()
+          ? periodBounds.end
+          : new Date();
     const years =
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    return years;
+    return Math.max(0, years);
   };
 
-  const totalTenure = employees.reduce(
+  const totalTenure = activeEmployeesList.reduce(
     (sum, emp) => sum + calculateTenure(emp),
     0,
   );
   const averageTenure =
-    employees.length > 0 ? totalTenure / employees.length : 0;
+    activeEmployeesList.length > 0
+      ? totalTenure / activeEmployeesList.length
+      : 0;
 
   const retentionRate =
     totalHeadcount > 0 ? (activeEmployees / totalHeadcount) * 100 : 0;
 
-  const totalPayroll = employees
-    .filter((emp) => emp.status === "Active")
-    .reduce((sum, emp) => sum + emp.salary + emp.airtimeAllowance, 0);
+  const totalPayroll = activeEmployeesList.reduce(
+    (sum, emp) => sum + emp.salary + emp.airtimeAllowance,
+    0,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +266,19 @@ export default function EmployeesPage() {
     }
   };
 
+  const handleDeleteEmployee = async (employee: Employee) => {
+    if (window.confirm(`Are you sure you want to delete ${employee.name}?`)) {
+      try {
+        await deleteEmployee(employee as any);
+        await updateEmployees();
+        setSelectedEmployee(null);
+      } catch (error) {
+        console.error("Failed to delete employee:", error);
+        alert("Failed to delete employee.");
+      }
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       id: "",
@@ -250,16 +315,136 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-semibold text-pawa-navy">Employees</h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setIsAddModalOpen(true);
-          }}
-          className="px-6 py-2 rounded-lg text-white flex items-center gap-2 hover:opacity-90 transition-opacity bg-pawa-blue"
-        >
-          <span className="material-icons-outlined">person_add</span>
-          Add New Employee
-        </button>
+
+        <div className="flex items-center gap-4">
+          {/* Custom Month Filter Dropdown */}
+          <div className="relative inline-block">
+            <button
+              onClick={() => setFilterOpen((o) => !o)}
+              className="px-3 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors h-[38px]"
+            >
+              <span className="opacity-60 flex justify-start items-center gap-1">
+                <svg
+                  className="w-4 h-4 text-slate-400"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 4h12M4 8h8M6 12h4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-slate-700 text-xs font-normal font-sans">
+                  Period
+                </span>
+              </span>
+              <span className="text-slate-700 text-xs font-normal font-sans capitalize">
+                {selectedMonth === "All"
+                  ? "All Time"
+                  : selectedMonth.includes("-Q")
+                    ? `Q${selectedMonth.split("-Q")[1]} ${selectedMonth.split("-")[0]}`
+                    : selectedMonth.includes("-Y")
+                      ? `Year ${selectedMonth.split("-Y")[0]}`
+                      : new Date(selectedMonth + "-01").toLocaleString(
+                          "default",
+                          {
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )}
+              </span>
+              <svg
+                className="w-4 h-4 text-slate-400"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 6.4L8 10l4-3.6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            {filterOpen && (
+              <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
+                <button
+                  onClick={() => {
+                    setSelectedMonth("All");
+                    setFilterOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                    selectedMonth === "All"
+                      ? "text-pawa-blue font-semibold"
+                      : "text-slate-700"
+                  }`}
+                >
+                  All Time
+                </button>
+                {[
+                  { val: "2026-Y", label: "Year 2026" },
+                  { val: "2026-Q1", label: "Q1 2026 (Jan-Mar)" },
+                  { val: "2026-Q2", label: "Q2 2026 (Apr-Jun)" },
+                  { val: "2026-Q3", label: "Q3 2026 (Jul-Sep)" },
+                  { val: "2026-Q4", label: "Q4 2026 (Oct-Dec)" },
+                  ...[
+                    "01",
+                    "02",
+                    "03",
+                    "04",
+                    "05",
+                    "06",
+                    "07",
+                    "08",
+                    "09",
+                    "10",
+                    "11",
+                    "12",
+                  ].map((m) => ({
+                    val: `2026-${m}`,
+                    label: new Date(`2026-${m}-01`).toLocaleString("default", {
+                      month: "long",
+                      year: "numeric",
+                    }),
+                  })),
+                ].map((opt) => (
+                  <button
+                    key={opt.val}
+                    onClick={() => {
+                      setSelectedMonth(opt.val);
+                      setFilterOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                      selectedMonth === opt.val
+                        ? "text-pawa-blue font-semibold"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              resetForm();
+              setIsAddModalOpen(true);
+            }}
+            className="px-6 py-2 rounded-lg text-white flex items-center gap-2 hover:opacity-90 transition-opacity bg-pawa-blue text-sm"
+          >
+            <span className="material-icons-outlined">person_add</span>
+            New Employee
+          </button>
+        </div>
       </div>
 
       {/* Metrics Cards */}
@@ -588,10 +773,13 @@ export default function EmployeesPage() {
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setSelectedEmployee(null)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                    onClick={() => handleDeleteEmployee(selectedEmployee)}
+                    className="flex-1 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                   >
-                    Close
+                    <span className="material-icons-outlined text-[18px]">
+                      delete
+                    </span>
+                    Delete
                   </button>
                   <button
                     type="button"
@@ -624,7 +812,14 @@ export default function EmployeesPage() {
                     <span className="material-icons-outlined text-[18px]">
                       edit
                     </span>
-                    Edit Employee
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEmployee(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                  >
+                    Close
                   </button>
                 </div>
               </div>

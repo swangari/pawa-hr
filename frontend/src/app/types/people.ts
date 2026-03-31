@@ -15,8 +15,10 @@ export interface Employee {
     role: string;
     is_active: boolean;
     contract_type: string;
-    start_date: string;
+    hire_date: string;
+    termination_date?: string;
     salary?: number;
     airtime_allowance?: number;
-    
+    created_at?: string;
+    updated_at?: string;
 }

@@ -11,12 +11,14 @@ interface AddExpenseModalProps {
     amount: number;
     description: string;
   }) => void;
+  existingCategories?: string[];
 }
 
 export function AddExpenseModal({
   isOpen,
   onClose,
   onSubmit,
+  existingCategories = [],
 }: AddExpenseModalProps) {
   const [formData, setFormData] = useState({
     date: "",
@@ -110,12 +112,13 @@ export function AddExpenseModal({
                   required
                 />
                 <datalist id="expense-categories">
-                  <option value="salary">Salaries</option>
-                  <option value="recruitment">Recruitment</option>
-                  <option value="training">Training</option>
-                  <option value="welfare">Welfare</option>
-                  <option value="system">Systems</option>
-                  <option value="legal">Legal</option>
+                  {["salary", "transportation", "accommodation", "recruitment", "training", "welfare", "system", "legal", ...existingCategories]
+                    .filter((v, i, a) => a.indexOf(v) === i) // unique
+                    .map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
                 </datalist>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <span className="material-icons-outlined text-[20px]">

@@ -105,8 +105,8 @@ export async function deleteDepartment(department: Department) {
   return response.data;
 }
 
-export async function fetchAnalytics(month?: string) {
-  const url = month ? `/analytics/dashboard?month=${month}` : "/analytics/dashboard";
+export async function fetchAnalytics(period?: string) {
+  const url = period ? `/analytics/dashboard?period=${period}` : "/analytics/dashboard";
   const response = await api.get<Analytics>(url);
   return response.data;
 }

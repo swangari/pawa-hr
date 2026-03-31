@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchAnalytics } from "@/app/api/api";
+import { fetchAnalytics, fetchDepartments } from "@/app/api/api";
 import {
   BarChart,
   Bar,
@@ -22,16 +22,21 @@ import {
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState("2026-03"); // Default to current month
+  const [selectedMonth, setSelectedMonth] = useState("2026-Y"); // Default to Year view
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     const loadAnalytics = async () => {
       try {
         setLoading(true);
-        const analyticsData = await fetchAnalytics(selectedMonth);
+        const [analyticsData, deptData] = await Promise.all([
+          fetchAnalytics(selectedMonth),
+          fetchDepartments(),
+        ]);
         setData(analyticsData);
+        setDepartments(deptData);
       } catch (error) {
         console.error("Error fetching analytics:", error);
       } finally {
@@ -49,28 +54,66 @@ export default function DashboardPage() {
     );
   }
 
-  // Transform data for charts
-  const headcountData = data?.department_headcount
-    ? Object.entries(data.department_headcount).map(([name, value], index) => ({
-        name,
-        value: value as number,
-        color: ["#62C3DD", "#8B5CF6", "#F59E0B", "#10B981"][index % 4],
-      }))
-    : [];
+  const exportToPDF = async () => {
+    try {
+      const response = await fetch("/api/pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: window.location.href,
+          cookies: document.cookie,
+          selector: "#dashboard-content",
+        }),
+      });
 
-  const retentionTrendsData = data?.retention_rate
-    ? Object.entries(data.retention_rate).map(([month, rate]) => ({
-        month,
-        rate: rate as number,
-      }))
-    : [];
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to generate PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Dashboard_Report_${selectedMonth}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF report.");
+    }
+  };
+
+  // Transform data for charts
+  // Departments from GET /department include an 'employees' array.
+  // We count only active employees (is_active === true) for each department.
+  const headcountData =
+    departments.length > 0
+      ? departments.map((dept, index) => ({
+          name: dept.name,
+          value: (dept.employees || []).filter((e: any) => e.is_active).length,
+          color: ["#62C3DD", "#8B5CF6", "#F59E0B", "#10B981"][index % 4],
+        }))
+      : // .filter((d) => d.value > 0) // hide empty departments
+        [];
+
+  // Use the backend's monthly_headcount_trend for a true time-series view —
+  // shows total active employees per month rather than per-dept snapshots.
+  const headcountTrendData = data?.monthly_headcount_trend || [];
 
   const monthlyExpensesVsBudgetData = data?.monthly_expenses_vs_budget || [];
   const expenseCategoriesOverTimeData =
     data?.expense_categories_over_time || [];
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div
+      id="dashboard-content"
+      className="p-8 space-y-8 max-w-7xl mx-auto bg-gray-50/50"
+    >
       {/* Page Title & Filter */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
@@ -80,12 +123,15 @@ export default function DashboardPage() {
               Real-time overview of your workforce metrics
             </p>
           </div>
-          {/* <button className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600">
+          <button
+            onClick={exportToPDF}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600 shadow-sm"
+          >
             <span className="material-icons-outlined text-[20px]">
               download
             </span>
             Export Report
-          </button> */}
+          </button>
         </div>
 
         {/* Custom Month Filter Dropdown */}
@@ -113,10 +159,14 @@ export default function DashboardPage() {
               </span>
             </span>
             <span className="text-slate-700 text-xs font-normal font-sans capitalize">
-              {new Date(selectedMonth + "-01").toLocaleString("default", {
-                month: "long",
-                year: "numeric",
-              })}
+              {selectedMonth.includes("-Q")
+                ? `Q${selectedMonth.split("-Q")[1]} ${selectedMonth.split("-")[0]}`
+                : selectedMonth.includes("-Y")
+                  ? `Year ${selectedMonth.split("-Y")[0]}`
+                  : new Date(selectedMonth + "-01").toLocaleString("default", {
+                      month: "long",
+                      year: "numeric",
+                    })}
             </span>
             <svg
               className="w-4 h-4 text-slate-400"
@@ -137,44 +187,47 @@ export default function DashboardPage() {
           {filterOpen && (
             <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
               {[
-                "01",
-                "02",
-                "03",
-                "04",
-                "05",
-                "06",
-                "07",
-                "08",
-                "09",
-                "10",
-                "11",
-                "12",
-              ].map((m) => {
-                const val = `2026-${m}`;
-                const label = new Date(`2026-${m}-01`).toLocaleString(
-                  "default",
-                  {
+                { val: "2026-Y", label: "Year 2026" },
+                { val: "2026-Q1", label: "Q1 2026 (Jan-Mar)" },
+                { val: "2026-Q2", label: "Q2 2026 (Apr-Jun)" },
+                { val: "2026-Q3", label: "Q3 2026 (Jul-Sep)" },
+                { val: "2026-Q4", label: "Q4 2026 (Oct-Dec)" },
+                ...[
+                  "01",
+                  "02",
+                  "03",
+                  "04",
+                  "05",
+                  "06",
+                  "07",
+                  "08",
+                  "09",
+                  "10",
+                  "11",
+                  "12",
+                ].map((m) => ({
+                  val: `2026-${m}`,
+                  label: new Date(`2026-${m}-01`).toLocaleString("default", {
                     month: "long",
                     year: "numeric",
-                  },
-                );
-                return (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      setSelectedMonth(val);
-                      setFilterOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
-                      selectedMonth === val
-                        ? "text-pawa-blue font-semibold"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+                  }),
+                })),
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  onClick={() => {
+                    setSelectedMonth(opt.val);
+                    setFilterOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
+                    selectedMonth === opt.val
+                      ? "text-pawa-blue font-semibold"
+                      : "text-slate-700"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -225,13 +278,8 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-end gap-2">
             <div className="text-3xl font-bold text-gray-900">
-              {Object.values(data?.retention_rate || {}).length > 0
-                ? `${(
-                    (Object.values(data.retention_rate).reduce(
-                      (a: any, b: any) => (a as number) + (b as number),
-                      0,
-                    ) as number) / Object.values(data.retention_rate).length
-                  ).toFixed(1)}%`
+              {data?.global_retention_rate !== undefined
+                ? `${data.global_retention_rate}%`
                 : "0%"}
             </div>
           </div>
@@ -239,14 +287,7 @@ export default function DashboardPage() {
             <div
               className="h-full rounded-full bg-emerald-500"
               style={{
-                width: `${
-                  Object.values(data?.retention_rate || {}).length > 0
-                    ? (Object.values(data.retention_rate).reduce(
-                        (a: any, b: any) => (a as number) + (b as number),
-                        0,
-                      ) as number) / Object.values(data.retention_rate).length
-                    : 0
-                }%`,
+                width: `${data?.global_retention_rate || 0}%`,
               }}
             ></div>
           </div>
@@ -276,20 +317,14 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-gray-800">
               Retention Trends
             </h2>
-            <p className="text-sm text-gray-400">Last 6 Months</p>
+            <p className="text-sm text-gray-400">Total employees per month</p>
           </div>
-          <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={0}
-              minHeight={0}
-              debounce={50}
-            >
-              <AreaChart data={retentionTrendsData}>
+          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
+              <AreaChart data={headcountTrendData}>
                 <defs>
-                  <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#62C3DD" stopOpacity={0.1} />
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#62C3DD" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#62C3DD" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -308,7 +343,7 @@ export default function DashboardPage() {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 12, fill: "#9ca3af" }}
-                  domain={[0, 100]}
+                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={{
@@ -316,14 +351,15 @@ export default function DashboardPage() {
                     border: "none",
                     boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                   }}
+                  formatter={(value: any) => [value, "Employees"]}
                 />
                 <Area
                   type="monotone"
-                  dataKey="rate"
+                  dataKey="total"
                   stroke="#62C3DD"
                   strokeWidth={3}
                   fillOpacity={1}
-                  fill="url(#colorRate)"
+                  fill="url(#colorTotal)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -336,14 +372,8 @@ export default function DashboardPage() {
             Headcount Distribution
           </h2>
           <div className="flex flex-col md:flex-row items-center justify-around gap-8">
-            <div className="relative" style={{ width: 220, height: 220 }}>
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-                minWidth={0}
-                minHeight={0}
-                debounce={50}
-              >
+            <div className="relative overflow-hidden" style={{ width: 220, height: 220 }}>
+              <ResponsiveContainer width="100%" height={220} minWidth={0}>
                 <PieChart>
                   <Pie
                     data={headcountData}
@@ -410,14 +440,8 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
             Monthly Expenses vs Budget
           </h2>
-          <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={0}
-              minHeight={0}
-              debounce={50}
-            >
+          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <BarChart data={monthlyExpensesVsBudgetData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -469,14 +493,8 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
             Expense Categories over Time
           </h2>
-          <div className="h-[260px] w-full mt-4">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={0}
-              minHeight={0}
-              debounce={50}
-            >
+          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <LineChart data={expenseCategoriesOverTimeData}>
                 <CartesianGrid
                   strokeDasharray="3 3"

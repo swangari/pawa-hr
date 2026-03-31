@@ -67,6 +67,7 @@ body {
 .font-bold {
   font-weight: 700;
 }
+
 .font-instrument {
   font-family: var(--font-instrument);
 }
