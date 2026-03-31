@@ -7,7 +7,7 @@ router = APIRouter(tags=["Analytics"], prefix="/analytics")
 
 
 @router.get("/dashboard")
-def get_dashboard(month: str = None, db: Session = Depends(get_db)):
+def get_dashboard(period: str = None, db: Session = Depends(get_db)):
     """Get dashboard analytics."""
-    analytics = get_dashboard_analytics(db, month)
+    analytics = get_dashboard_analytics(db, period)
     return analytics

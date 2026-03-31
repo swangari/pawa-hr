@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from enum import Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -25,7 +25,7 @@ class Expense(Base):
     id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid4()))
     description = Column(String(255), nullable=False)
     amount = Column(Integer, nullable=False)
-    expense_type = Column(SQLEnum(ExpenseType), nullable=False)
+    expense_type = Column(String(100), nullable=False)
     date = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
