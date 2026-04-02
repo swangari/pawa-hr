@@ -54,38 +54,12 @@ export default function DashboardPage() {
     );
   }
 
-  const exportToPDF = async () => {
-    try {
-      const response = await fetch("/api/pdf", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: window.location.href,
-          cookies: document.cookie,
-          selector: "#dashboard-content",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || "Failed to generate PDF");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Dashboard_Report_${selectedMonth}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF report.");
-    }
+  const exportToPDF = () => {
+    const originalTitle = document.title;
+    const fileName = `PawaHR - Dashboard - ${new Date().toISOString().split("T")[0]}`;
+    document.title = fileName;
+    window.print();
+    document.title = originalTitle;
   };
 
   // Transform data for charts
@@ -112,8 +86,155 @@ export default function DashboardPage() {
   return (
     <div
       id="dashboard-content"
-      className="p-8 space-y-8 max-w-7xl mx-auto bg-gray-50/50"
+      className="p-8 space-y-8 max-w-7xl mx-auto bg-gray-50/50 print-container"
     >
+      <style jsx global>{`
+        @media print {
+          /* ... your existing visibility logic ... */
+
+          body * {
+            visibility: hidden;
+          }
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0; /* Changed from 200px to 0 to avoid huge empty space at top */
+            width: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* Target the grid container to force a single line */
+          .grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 10px !important; /* Tighten gap for paper */
+            width: 100% !important;
+          }
+
+          /* Ensure cards take up equal height and look clean */
+          .grid > div {
+            break-inside: avoid;
+            border: 1px solid #e5e7eb !important; /* Ensure border shows up */
+            padding: 15px !important;
+            box-shadow: none !important;
+          }
+
+          /* Force background colors/icons to show in print */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+        }
+        @media print {
+          /* ... previous visibility and .print-container styles ... */
+
+          /* Force the Main Analysis and Bottom Sections into 2 columns */
+          .grid-cols-1.lg\:grid-cols-2 {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px !important; /* Reduced gap for print */
+            width: 100% !important;
+          }
+
+          /* Ensure chart containers don't get cut off */
+          .bg-white {
+            break-inside: avoid; /* Prevents splitting a chart across two pages */
+            border: 1px solid #e5e7eb !important;
+            padding: 1rem !important;
+            margin-bottom: 0 !important;
+          }
+
+          /* Fix Recharts sizing issues during print */
+          .recharts-responsive-container {
+            width: 100% !important;
+            height: 220px !important; /* Slightly reduced height to fit 2x2 nicely */
+            min-width: 0 !important;
+            display: block !important;
+            visibility: visible !important;
+          }
+          /* Disable animations that cause 'incomplete' charts */
+          .recharts-sector,
+          .recharts-pie-sector {
+            transition: none !important;
+            animation: none !important;
+            stroke-dasharray: 0 !important; /* Fixes some SVG line issues */
+          }
+
+          /* Force the Pie Chart layout to stay side-by-side */
+          .flex-col.md\:flex-row {
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+          }
+
+          /* Adjust text sizes for better legibility on A4 */
+          h2 {
+            font-size: 14pt !important;
+            margin-bottom: 10px !important;
+          }
+
+          .text-sm {
+            font-size: 9pt !important;
+          }
+          .text-xs {
+            font-size: 8pt !important;
+          }
+
+          /* Force background colors and chart fills to show */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+        @media print {
+          /* ... your existing styles ... */
+
+          /* 1. Shrink the Pie Chart area to make room for the legend */
+          .print-container .recharts-wrapper {
+            margin: 0 auto !important;
+          }
+
+          /* 2. Target the Headcount Distribution flex wrapper */
+          /* This ensures the Pie and the List stay side-by-side without touching */
+          .print-container .flex.flex-col.md\:flex-row {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 10px !important; /* Small gap to prevent overlap */
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+
+          /* 3. Specifically scale down the Pie container div */
+          .print-container div[style*="width: 220px"] {
+            width: 160px !important; /* Reduced from 220px */
+            height: 160px !important;
+            flex-shrink: 0 !important;
+          }
+
+          /* 4. Fix the legend/list spacing */
+          .print-container .space-y-3 {
+            margin-left: 10px !important;
+            max-width: 140px !important; /* Prevent long names from pushing into chart */
+            flex-grow: 1 !important;
+          }
+
+          /* 5. Ensure the text inside doesn't wrap awkwardly */
+          .print-container .text-xs {
+            white-space: nowrap !important;
+            font-size: 7pt !important;
+          }
+        }
+      `}</style>
       {/* Page Title & Filter */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
@@ -125,7 +246,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={exportToPDF}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600 shadow-sm"
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600 shadow-sm no-print"
           >
             <span className="material-icons-outlined text-[20px]">
               download
@@ -135,7 +256,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Custom Month Filter Dropdown */}
-        <div className="relative inline-block">
+        <div className="relative inline-block no-print">
           <button
             onClick={() => setFilterOpen((o) => !o)}
             className="px-3 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors h-[38px]"
@@ -319,7 +440,10 @@ export default function DashboardPage() {
             </h2>
             <p className="text-sm text-gray-400">Total employees per month</p>
           </div>
-          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+          <div
+            className="w-full mt-4 relative overflow-hidden"
+            style={{ height: 260 }}
+          >
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <AreaChart data={headcountTrendData}>
                 <defs>
@@ -372,7 +496,10 @@ export default function DashboardPage() {
             Headcount Distribution
           </h2>
           <div className="flex flex-col md:flex-row items-center justify-around gap-8">
-            <div className="relative overflow-hidden" style={{ width: 220, height: 220 }}>
+            <div
+              className="relative overflow-hidden"
+              style={{ width: 220, height: 220 }}
+            >
               <ResponsiveContainer width="100%" height={220} minWidth={0}>
                 <PieChart>
                   <Pie
@@ -440,7 +567,10 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
             Monthly Expenses vs Budget
           </h2>
-          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+          <div
+            className="w-full mt-4 relative overflow-hidden"
+            style={{ height: 260 }}
+          >
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <BarChart data={monthlyExpensesVsBudgetData}>
                 <CartesianGrid
@@ -493,7 +623,10 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
             Expense Categories over Time
           </h2>
-          <div className="w-full mt-4 relative overflow-hidden" style={{ height: 260 }}>
+          <div
+            className="w-full mt-4 relative overflow-hidden"
+            style={{ height: 260 }}
+          >
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <LineChart data={expenseCategoriesOverTimeData}>
                 <CartesianGrid

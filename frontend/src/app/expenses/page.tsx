@@ -162,9 +162,20 @@ export default function ExpenditurePage() {
 
   // Derived category data for the pie chart
   const dynamicCategoryData = Object.entries(categoryTotals)
-    .filter(([name]) => name.toLowerCase() !== "salary" && name.toLowerCase() !== "salaries")
+    .filter(
+      ([name]) =>
+        name.toLowerCase() !== "salary" && name.toLowerCase() !== "salaries",
+    )
     .map(([name, value], index) => {
-      const colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088fe", "#00c49f", "#ffbb28"];
+      const colors = [
+        "#8884d8",
+        "#82ca9d",
+        "#ffc658",
+        "#ff8042",
+        "#0088fe",
+        "#00c49f",
+        "#ffbb28",
+      ];
       return {
         name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
         value: value as number,
@@ -179,7 +190,9 @@ export default function ExpenditurePage() {
     ...dynamicCategoryData,
   ].filter((item) => item.value > 0 || item.name === "Salaries");
 
-  const uniqueCategories = Array.from(new Set(allExpenses.map(e => e.category.toLowerCase())));
+  const uniqueCategories = Array.from(
+    new Set(allExpenses.map((e) => e.category.toLowerCase())),
+  );
 
   const totalActual = spendByCategoryData.reduce(
     (sum, item) => sum + item.value,
@@ -223,7 +236,7 @@ export default function ExpenditurePage() {
     setBudgetInput("");
   };
 
-  const currentYearMonth = "2026-03";
+  const currentYearMonth = new Date().toISOString().slice(0, 7);
   const isPastMonth =
     selectedMonth !== "All" &&
     !selectedMonth.includes("-Y") &&
@@ -265,42 +278,46 @@ export default function ExpenditurePage() {
     }
   };
 
-  const exportToPDF = async () => {
-    try {
-      const response = await fetch("/api/pdf", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: window.location.href,
-          cookies: document.cookie,
-          selector: "#expenses-content",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || "Failed to generate PDF");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Expenditure_Report_${selectedMonth}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF report.");
-    }
+  const exportToPDF = () => {
+    const originalTitle = document.title;
+    const fileName = `PawaHR - Expenses - ${new Date().toISOString().split("T")[0]}`;
+    document.title = fileName;
+    window.print();
+    document.title = originalTitle;
   };
 
   return (
-    <div id="expenses-content" className="p-8 max-w-7xl mx-auto bg-gray-50/50">
+    <div
+      id="expenses-content"
+      className="p-8 max-w-7xl mx-auto bg-gray-50/50 print-container"
+    >
+      <style jsx global>{`
+        @media print {
+          /* Hide everything by default */
+          body * {
+            visibility: hidden;
+          }
+          /* Show only the invoice container and its children */
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+          /* Position the invoice at the very top-left of the PDF page */
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210mm; /* Force A4 width */
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+          /* Hide specific UI elements like the Download button inside the main */
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -311,7 +328,7 @@ export default function ExpenditurePage() {
         </div>
         <div className="flex items-center gap-4">
           {/* Custom Month Filter Dropdown */}
-          <div className="relative inline-block">
+          <div className="relative inline-block no-print">
             <button
               onClick={() => setFilterOpen((o) => !o)}
               className="px-3 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 inline-flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors h-[38px]"
@@ -427,7 +444,7 @@ export default function ExpenditurePage() {
           </div>
           <button
             onClick={exportToPDF}
-            className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600 shadow-sm"
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-all font-medium text-sm text-gray-600 shadow-sm no-print"
           >
             <span className="material-icons-outlined text-[20px]">
               download
@@ -436,9 +453,9 @@ export default function ExpenditurePage() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            disabled={isPastMonth || isFutureMonth}
-            className={`px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all font-medium ${
-              isPastMonth || isFutureMonth
+            disabled={selectedMonth !== currentYearMonth}
+            className={`px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all font-medium no-print ${
+              selectedMonth !== currentYearMonth
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                 : "bg-[#62C3DD] text-white hover:bg-[#52B3CD] shadow-pawa-blue/20"
             }`}
@@ -458,10 +475,10 @@ export default function ExpenditurePage() {
               <h2 className="text-lg font-semibold text-gray-800">
                 Budget vs. Actual
               </h2>
-              {!isEditingBudget && !isPastMonth && !isFutureMonth && (
+              {!isEditingBudget && selectedMonth === currentYearMonth && (
                 <button
                   onClick={handleEditBudget}
-                  className="p-2 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded-full transition-all"
+                  className="p-2 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded-full transition-all no-print"
                   title="Edit Budget"
                 >
                   <span className="material-icons-outlined text-[20px]">
