@@ -8,6 +8,8 @@ import {
   fetchBudgets,
   fetchExpenses,
   addExpense,
+  updateExpense,
+  deleteExpense,
   addBudget,
   updateBudget,
 } from "../api/api";
@@ -27,6 +29,7 @@ export default function ExpenditurePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
 
@@ -237,11 +240,6 @@ export default function ExpenditurePage() {
   };
 
   const currentYearMonth = new Date().toISOString().slice(0, 7);
-  const isPastMonth =
-    selectedMonth !== "All" &&
-    !selectedMonth.includes("-Y") &&
-    !selectedMonth.includes("-Q") &&
-    selectedMonth < currentYearMonth;
   const isFutureMonth =
     selectedMonth !== "All" &&
     !selectedMonth.includes("-Y") &&
@@ -249,32 +247,75 @@ export default function ExpenditurePage() {
     selectedMonth > currentYearMonth;
 
   const handleAddExpense = async (newExpenseData: any) => {
-    if (!currentBudget) {
+    // If no budget for selected month, we could create one or error
+    // In this app, we expect a budget to exist.
+    let targetBudget = currentBudget;
+
+    // If we're editing an expense from a different month, or adding to a different month
+    // We should ensure we have the correct budget_id.
+    // For now, assume the user picked the right month in the UI.
+
+    if (!targetBudget && selectedMonth !== "All") {
       alert("Please set a budget for this month first.");
       return;
     }
 
     try {
-      const payload = {
-        ...newExpenseData,
-        budget_id: currentBudget.id,
-        expense_type: newExpenseData.category.toLowerCase(),
-        // Send the date string directly (YYYY-MM-DD) to avoid
-        // toISOString() shifting the date due to local timezone.
-        date: newExpenseData.date,
-      };
-      const created = await addExpense(payload);
-      const mappedCreated = {
-        ...created,
-        category: (created as any).expense_type.toLowerCase(),
-      };
-      setExpenses([mappedCreated as any, ...expenses]);
+      if (newExpenseData.id) {
+        // Update
+        const updated = await updateExpense(newExpenseData as any, {
+          ...newExpenseData,
+          expense_type: newExpenseData.category.toLowerCase(),
+        });
+        const mappedUpdated = {
+          ...updated,
+          category: (updated as any).expense_type.toLowerCase(),
+        };
+        setExpenses(
+          expenses.map((e) => (e.id === updated.id ? mappedUpdated : e)),
+        );
+        setAllExpenses(
+          allExpenses.map((e) => (e.id === updated.id ? mappedUpdated : e)),
+        );
+      } else {
+        // Create
+        const payload = {
+          ...newExpenseData,
+          budget_id: targetBudget?.id,
+          expense_type: newExpenseData.category.toLowerCase(),
+          date: newExpenseData.date,
+        };
+        const created = await addExpense(payload);
+        const mappedCreated = {
+          ...created,
+          category: (created as any).expense_type.toLowerCase(),
+        };
+        setExpenses([mappedCreated as any, ...expenses]);
+        setAllExpenses([mappedCreated as any, ...allExpenses]);
+      }
       setIsModalOpen(false);
+      setEditingExpense(null);
     } catch (error) {
-      console.error("Failed to add expense:", error);
-      alert(
-        "Failed to add expense. Ensure the date is within the current budget month.",
-      );
+      console.error("Failed to save expense:", error);
+      alert("Failed to save expense. Ensure the data is valid.");
+    }
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteExpense = async (expense: Expense) => {
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+
+    try {
+      await deleteExpense(expense);
+      setExpenses(expenses.filter((e) => e.id !== expense.id));
+      setAllExpenses(allExpenses.filter((e) => e.id !== expense.id));
+    } catch (error) {
+      console.error("Failed to delete expense:", error);
+      alert("Failed to delete expense.");
     }
   };
 
@@ -452,10 +493,13 @@ export default function ExpenditurePage() {
             Export Report
           </button>
           <button
-            onClick={() => setIsModalOpen(true)}
-            disabled={selectedMonth !== currentYearMonth}
+            onClick={() => {
+              setEditingExpense(null);
+              setIsModalOpen(true);
+            }}
+            disabled={isFutureMonth}
             className={`px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all font-medium no-print ${
-              selectedMonth !== currentYearMonth
+              isFutureMonth
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                 : "bg-[#62C3DD] text-white hover:bg-[#52B3CD] shadow-pawa-blue/20"
             }`}
@@ -475,7 +519,7 @@ export default function ExpenditurePage() {
               <h2 className="text-lg font-semibold text-gray-800">
                 Budget vs. Actual
               </h2>
-              {!isEditingBudget && selectedMonth === currentYearMonth && (
+              {!isEditingBudget && !isFutureMonth && (
                 <button
                   onClick={handleEditBudget}
                   className="p-2 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded-full transition-all no-print"
@@ -675,34 +719,68 @@ export default function ExpenditurePage() {
               </div>
             ) : (
               <div className="space-y-5 flex-1 overflow-y-auto">
-                {expenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="flex justify-between items-start group"
-                  >
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold text-gray-800 group-hover:text-pawa-blue transition-colors">
-                        {expense.category}
+                {expenses.map((expense) => {
+                  const isFutureDate =
+                    new Date(expense.date).toISOString().slice(0, 7) >
+                    currentYearMonth;
+                  return (
+                    <div
+                      key={expense.id}
+                      className="flex justify-between items-start group"
+                    >
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-gray-800 group-hover:text-pawa-blue transition-colors">
+                          {expense.category}
+                        </div>
+                        <div className="text-xs text-gray-500 line-clamp-1">
+                          {expense.description}
+                        </div>
+                        <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <span className="material-icons-outlined text-[12px]">
+                            calendar_today
+                          </span>
+                          {new Date(expense.date).toLocaleDateString(
+                            undefined,
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            },
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 line-clamp-1">
-                        {expense.description}
-                      </div>
-                      <div className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <span className="material-icons-outlined text-[12px]">
-                          calendar_today
-                        </span>
-                        {new Date(expense.date).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-sm font-bold text-gray-900">
+                          KES {expense.amount.toLocaleString()}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                          {!isFutureDate && (
+                            <>
+                              <button
+                                onClick={() => handleEditExpense(expense)}
+                                className="p-1 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded transition-all"
+                                title="Edit"
+                              >
+                                <span className="material-icons-outlined text-[16px]">
+                                  edit
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteExpense(expense)}
+                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                                title="Delete"
+                              >
+                                <span className="material-icons-outlined text-[16px]">
+                                  delete
+                                </span>
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-gray-900">
-                      KES {expense.amount.toLocaleString()}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -711,9 +789,13 @@ export default function ExpenditurePage() {
 
       <AddExpenseModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingExpense(null);
+        }}
         onSubmit={handleAddExpense}
         existingCategories={uniqueCategories}
+        initialData={editingExpense}
       />
     </div>
   );

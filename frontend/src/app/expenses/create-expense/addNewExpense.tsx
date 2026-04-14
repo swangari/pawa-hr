@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Expense } from "../../types/expenses";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (expense: {
+    id?: string;
     date: string;
     category: string;
     amount: number;
     description: string;
   }) => void;
   existingCategories?: string[];
+  initialData?: Expense | null;
 }
 
 export function AddExpenseModal({
@@ -19,13 +22,35 @@ export function AddExpenseModal({
   onClose,
   onSubmit,
   existingCategories = [],
+  initialData = null,
 }: AddExpenseModalProps) {
   const [formData, setFormData] = useState({
+    id: "",
     date: "",
     category: "salary",
     amount: "",
     description: "",
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        id: initialData.id,
+        date: initialData.date,
+        category: initialData.category,
+        amount: initialData.amount.toString(),
+        description: initialData.description,
+      });
+    } else {
+      setFormData({
+        id: "",
+        date: "",
+        category: "salary",
+        amount: "",
+        description: "",
+      });
+    }
+  }, [initialData, isOpen]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -45,12 +70,15 @@ export function AddExpenseModal({
       ...formData,
       amount: Number(formData.amount),
     });
-    setFormData({
-      date: "",
-      category: "salary",
-      amount: "",
-      description: "",
-    });
+    if (!initialData) {
+      setFormData({
+        id: "",
+        date: "",
+        category: "salary",
+        amount: "",
+        description: "",
+      });
+    }
     onClose();
   };
 
@@ -68,7 +96,7 @@ export function AddExpenseModal({
         >
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <h2 className="text-xl font-semibold text-gray-800">
-              Log New Expense
+              {initialData ? "Edit Expense" : "Log New Expense"}
             </h2>
             <button
               onClick={onClose}
@@ -177,8 +205,10 @@ export function AddExpenseModal({
                 type="submit"
                 className="flex-1 py-2.5 bg-[#62C3DD] text-white font-medium rounded-lg hover:bg-[#52B3CD] shadow-sm shadow-pawa-blue/20 transition-all flex items-center justify-center gap-2"
               >
-                <span className="material-icons-outlined text-[18px]">add</span>
-                Add Expense
+                <span className="material-icons-outlined text-[18px]">
+                  {initialData ? "save" : "add"}
+                </span>
+                {initialData ? "Update Expense" : "Add Expense"}
               </button>
             </div>
           </form>

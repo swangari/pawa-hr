@@ -5,3 +5,5 @@ __pycache__/
 backend/.DS_Store
 .DS_Store
 *.sql
+backend/pyrightconfig.json
+.vscode/settings.json
