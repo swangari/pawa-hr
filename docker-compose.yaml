@@ -38,7 +38,6 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    command: yarn dev
     restart: unless-stopped
     depends_on:
       backend:
@@ -54,7 +53,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-      DB_PORT: 3306
+      MYSQL_PORT: 3306
     # ports:
     #   - "3306:3306"
     volumes:
