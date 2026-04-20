@@ -1,4 +1,3 @@
-from datetime import datetime
 from sqlalchemy.orm import Session
 from models.hr_expenses import Expense as ExpenseModel
 from models.budget import Budget
@@ -12,21 +11,19 @@ class ExpenseService:
 
     def create_expense(self, expense: ExpenseCreate) -> ExpenseModel:
         try:
-            # Check for past month
-            current_month = datetime.now().strftime("%Y-%m")
-            expense_month = expense.date.strftime("%Y-%m")
-            if expense_month < current_month:
-                raise ValueError(f"Cannot add expenses to a past month ({expense_month}). Current month is {current_month}.")
+            from datetime import datetime
+            if expense.date.date() > datetime.now().date():
+                raise ValueError("Expense date cannot be in the future.")
 
-            # Validate budget month matches expense date
+            # Validate budget exists and matches expense year
             budget = self.db.query(Budget).filter(Budget.id == expense.budget_id).first()
             if not budget:
-                raise ValueError("Budget not found")
-            
-            # Format: budget.month is "YYYY-MM", expense.date is datetime
-            expense_month = expense.date.strftime("%Y-%m")
-            if expense_month != budget.month:
-                raise ValueError(f"Expense date {expense_month} does not match budget month {budget.month}")
+                # Attempt to find budget by year if ID might be stale or incorrect
+                expense_year = expense.date.strftime("%Y")
+                budget = self.db.query(Budget).filter(Budget.month == expense_year).first()
+                if not budget:
+                    raise ValueError(f"No annual budget found for the year {expense_year}. Please create a budget for this year first.")
+                expense.budget_id = budget.id
 
             expense_data = expense.dict()
             expense_data['expense_type'] = expense_data['expense_type'].upper()
@@ -49,16 +46,14 @@ class ExpenseService:
         self, expense_id: str, expense: ExpenseUpdate
     ) -> Optional[ExpenseModel]:
         try:
+            from datetime import datetime
+            if expense.date and expense.date.date() > datetime.now().date():
+                raise ValueError("Expense date cannot be in the future.")
+            
             db_expense = self.get_expense(expense_id)
             if not db_expense:
                 return None
             
-            # Check for past month
-            current_month = datetime.now().strftime("%Y-%m")
-            expense_month = db_expense.date.strftime("%Y-%m")
-            if expense_month < current_month:
-                raise ValueError("Past month expenses are immutable and cannot be updated.")
-
             for field, value in expense.dict(exclude_unset=True).items():
                 setattr(db_expense, field, value)
             self.db.commit()
@@ -74,12 +69,6 @@ class ExpenseService:
             if not db_expense:
                 return None
             
-            # Check for past month
-            current_month = datetime.now().strftime("%Y-%m")
-            expense_month = db_expense.date.strftime("%Y-%m")
-            if expense_month < current_month:
-                raise ValueError("Past month expenses are immutable and cannot be deleted.")
-
             self.db.delete(db_expense)
             self.db.commit()
             return db_expense

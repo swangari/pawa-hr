@@ -1,7 +1,8 @@
-from models import Department, Employee, Budget
+from models import Department, Employee, Budget, Expense
 from datetime import datetime
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import calendar
 
 
@@ -109,44 +110,98 @@ def calculate_global_retention_rate(db: Session, period: str = None) -> float:
     return round((active_count / len(total_employees)) * 100, 1)
 
 
+def calculate_payroll_for_months(db: Session, months: List[str], only_actual: bool = False) -> float:
+    """Calculate precise payroll for a list of months by checking employee active status in each month.
+    If only_actual is True, it will not count payroll for months in the future relative to today.
+    """
+    total_payroll = 0.0
+    now = datetime.now()
+    current_month_str = now.strftime("%Y-%m")
+    
+    for m in months:
+        # If we only want actual spend (YTD), skip future months
+        if only_actual and m > current_month_str:
+            continue
+            
+        year, month_num = int(m[:4]), int(m[5:7])
+        first_day = datetime(year, month_num, 1)
+        last_day = datetime(year, month_num, calendar.monthrange(year, month_num)[1], 23, 59, 59)
+        
+        # Employee was active if hired on/before last day AND (not terminated OR terminated after first day)
+        active_employees = db.query(Employee).filter(
+            Employee.hire_date <= last_day,
+            (Employee.termination_date.is_(None)) | (Employee.termination_date >= first_day)
+        ).all()
+        
+        total_payroll += sum(float((emp.salary or 0) + (emp.airtime_allowance or 0)) for emp in active_employees)
+    return total_payroll
+
+
 def calculate_total_budget_percentage_used(db: Session, period: str = None) -> float:
-    """Calculate the total percentage of budget used for the specified period."""
-    _, _, months = parse_period(period)
+    """Calculate the total percentage of budget used for the specified period against ANNUAL budget."""
+    first_day, last_day, months = parse_period(period)
+    year = first_day.year
 
-    budgets = db.query(Budget).filter(Budget.month.in_(months)).all()
-    if not budgets:
+    annual_budget = db.query(Budget).filter(Budget.month == str(year)).first()
+    if not annual_budget or annual_budget.amount == 0:
         return 0.0
 
-    total_budget_amount = sum(b.amount for b in budgets)
-    if total_budget_amount == 0:
-        return 0.0
+    total_expenses = float(db.query(func.sum(Expense.amount)).filter(
+        Expense.date >= first_day,
+        Expense.date <= last_day
+    ).scalar() or 0)
 
-    # Strictly use the expenses linked to these budgets
-    total_expenses = sum(exp.amount for b in budgets for exp in b.expenses)
+    # For dashboard high-level percentage, use the precise multi-month YTD calculation
+    # We use only_actual=True to show what has been spent so far in the year
+    total_payroll = calculate_payroll_for_months(db, months, only_actual=True)
 
-    percentage = (total_expenses / total_budget_amount) * 100
+    total_spend = total_expenses + total_payroll
+    percentage = (total_spend / float(annual_budget.amount)) * 100
     return round(percentage, 1)
 
 
 def calculate_monthly_expenses_vs_budget(
     db: Session, period: str = None
 ) -> List[Dict[str, Any]]:
-    """Compare monthly expenses against budget for the specified period."""
-    _, _, months = parse_period(period)
+    """Compare periodic expenses against the full annual budget for the specified period."""
+    first_day, last_day, months = parse_period(period)
+    year = first_day.year
+
+    annual_budget = db.query(Budget).filter(Budget.month == str(year)).first()
+    budget_amount = annual_budget.amount if annual_budget else 0
 
     data = []
-    budgets = (
-        db.query(Budget).filter(Budget.month.in_(months)).order_by(Budget.month).all()
-    )
-    budget_map = {b.month: b for b in budgets}
-
-    for m in months:
-        b = budget_map.get(m)
-        if b:
-            total_expenses = sum(exp.amount for exp in b.expenses)
-            data.append({"month": m, "budget": b.amount, "expenses": total_expenses})
-        else:
-            data.append({"month": m, "budget": 0, "expenses": 0})
+    
+    # If period is more than a month, we group by month
+    if len(months) > 1:
+        for m in months:
+            m_year, m_month = int(m[:4]), int(m[5:7])
+            m_first_day = datetime(m_year, m_month, 1)
+            m_last_day = datetime(m_year, m_month, calendar.monthrange(m_year, m_month)[1], 23, 59, 59)
+            
+            m_expenses = float(db.query(func.sum(Expense.amount)).filter(
+                Expense.date >= m_first_day,
+                Expense.date <= m_last_day
+            ).scalar() or 0)
+            
+            m_payroll = calculate_payroll_for_months(db, [m])
+            
+            # Scale budget to monthly portion for chart readability
+            m_budget = float(budget_amount) / 12
+            
+            m_total = m_expenses + m_payroll
+            data.append({"month": m, "budget": m_budget, "expenses": m_total})
+    else:
+        # Single month - show against full annual budget portion (or full annual if preferred)
+        # But for consistency with multi-view, we scale here too
+        total_expenses = float(db.query(func.sum(Expense.amount)).filter(
+            Expense.date >= first_day,
+            Expense.date <= last_day
+        ).scalar() or 0)
+        
+        total_payroll = calculate_payroll_for_months(db, months)
+        
+        data.append({"month": months[0], "budget": float(budget_amount) / 12, "expenses": total_expenses + total_payroll})
 
     return data
 
@@ -157,21 +212,28 @@ def calculate_expense_categories_over_time(
     """Get expense categories breakdown over the specified period."""
     _, _, months = parse_period(period)
 
-    budgets = (
-        db.query(Budget).filter(Budget.month.in_(months)).order_by(Budget.month).all()
-    )
-    budget_map = {b.month: b for b in budgets}
-
     result = []
     for m in months:
+        m_year, m_month = int(m[:4]), int(m[5:7])
+        m_first_day = datetime(m_year, m_month, 1)
+        m_last_day = datetime(m_year, m_month, calendar.monthrange(m_year, m_month)[1], 23, 59, 59)
+        
         month_name = datetime.strptime(m, "%Y-%m").strftime("%b")
         month_data = {"month": month_name, "sort_key": m}
 
-        b = budget_map.get(m)
-        if b:
-            for exp in b.expenses:
-                cat = exp.expense_type
-                month_data[cat] = month_data.get(cat, 0) + exp.amount
+        # Categories from Expenses table
+        cat_expenses = db.query(Expense.expense_type, func.sum(Expense.amount)).filter(
+            Expense.date >= m_first_day,
+            Expense.date <= m_last_day
+        ).group_by(Expense.expense_type).all()
+        
+        for cat, amt in cat_expenses:
+            month_data[cat] = float(amt)
+
+        # Add Salary category
+        m_payroll = calculate_payroll_for_months(db, [m])
+        if m_payroll > 0:
+            month_data["SALARY"] = m_payroll
 
         result.append(month_data)
 

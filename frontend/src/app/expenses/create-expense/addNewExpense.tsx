@@ -112,15 +112,16 @@ export function AddExpenseModal({
                 Date
               </label>
               <div className="relative">
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all"
-                  required
-                />
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, date: e.target.value })
+                    }
+                    max={new Date().toISOString().split("T")[0]}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pawa-blue/20 focus:border-pawa-blue transition-all"
+                    required
+                  />
               </div>
             </div>
 

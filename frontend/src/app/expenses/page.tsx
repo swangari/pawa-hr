@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { AddExpenseModal } from "./create-expense/addNewExpense";
+import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 import {
   fetchEmployees,
   fetchBudgets,
@@ -19,7 +20,7 @@ import { Employee } from "../types/people";
 
 export default function ExpenditurePage() {
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState("All");
+  const [selectedMonth, setSelectedMonth] = useState("2026-Y");
   const [filterOpen, setFilterOpen] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -30,8 +31,37 @@ export default function ExpenditurePage() {
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
-  const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentYearMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+  const isFutureMonth = useMemo(() => {
+    if (selectedMonth === "All") return false;
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonthNum = today.getMonth() + 1; // 1-indexed
+
+    if (selectedMonth.includes("-Y")) {
+      const year = parseInt(selectedMonth.split("-Y")[0]);
+      return year > currentYear;
+    }
+
+    if (selectedMonth.includes("-Q")) {
+      const parts = selectedMonth.split("-Q");
+      const year = parseInt(parts[0]);
+      const q = parseInt(parts[1]);
+      const firstMonthOfQ = (q - 1) * 3 + 1;
+
+      if (year > currentYear) return true;
+      if (year < currentYear) return false;
+      return firstMonthOfQ > currentMonthNum;
+    }
+
+    // YYYY-MM
+    return selectedMonth > currentYearMonth;
+  }, [selectedMonth, currentYearMonth]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,16 +81,14 @@ export default function ExpenditurePage() {
 
         setAllExpenses(mappedExpenses);
 
-        const budgetForMonth = (budgetData as any).find(
-          (b: any) => b.month === currentMonthStr,
+        const currentYear = new Date().getFullYear().toString();
+        const budgetForYear = (budgetData as any).find(
+          (b: any) => b.month === currentYear,
         );
-        setCurrentBudget(budgetForMonth || null);
+        setCurrentBudget(budgetForYear || null);
 
-        // Initial expenses (for current month)
-        const filteredExpenses = budgetForMonth
-          ? mappedExpenses.filter((e: any) => e.budget_id === budgetForMonth.id)
-          : [];
-        setExpenses(filteredExpenses);
+        // All expenses
+        setExpenses(mappedExpenses);
       } catch (error) {
         console.error("Error fetching expenditure data:", error);
       }
@@ -114,48 +142,40 @@ export default function ExpenditurePage() {
       setExpenses(filtered);
     }
 
-    // Also update currentBudget if a specific month is selected
-    if (
-      selectedMonth !== "All" &&
-      !selectedMonth.includes("-Y") &&
-      !selectedMonth.includes("-Q")
-    ) {
-      const budgetForMonth = budgets.find(
-        (b: any) => b.month === selectedMonth,
-      );
-      setCurrentBudget(budgetForMonth || null);
-    } else {
-      // Default to actual current month's budget if in aggregate view
-      const budgetForMonth = budgets.find(
-        (b: any) => b.month === currentMonthStr,
-      );
-      setCurrentBudget(budgetForMonth || null);
-    }
-  }, [selectedMonth, allExpenses, periodBounds, budgets, currentMonthStr]);
+    // Always find annual budget for the year of the selection
+    const selectedYear =
+      selectedMonth === "All"
+        ? new Date().getFullYear().toString()
+        : selectedMonth.split("-")[0];
 
-  const totalPayroll = employees
-    .filter((emp) => {
-      const hireD = new Date(emp.hire_date || emp.created_at || "");
-      if (hireD > periodBounds.end) return false;
-      if (!emp.is_active && emp.termination_date) {
-        const termD = new Date(emp.termination_date);
-        if (termD <= periodBounds.start) return false;
-      }
-      return true;
-    })
-    .reduce((sum, emp) => {
-      // For simplicity, we count full month salary if they were active at any point in the period
-      // In a real system, we'd prorate.
-      return sum + (emp.salary || 0) + (emp.airtime_allowance || 0);
-    }, 0);
+    const budgetForYear = budgets.find((b: any) => b.month === selectedYear);
+    setCurrentBudget(budgetForYear || null);
+  }, [selectedMonth, allExpenses, periodBounds, budgets, currentYearMonth]);
 
-  const totalBudget = budgets
-    .filter((b) => {
-      const [y, m] = b.month.split("-").map(Number);
-      const budgetDate = new Date(y, m - 1, 15); // middle of month
-      return budgetDate >= periodBounds.start && budgetDate <= periodBounds.end;
-    })
-    .reduce((sum, b) => sum + b.amount, 0);
+  // Calculate number of months in the period to scale payroll
+  const numMonths =
+    (periodBounds.end.getFullYear() - periodBounds.start.getFullYear()) * 12 +
+    (periodBounds.end.getMonth() - periodBounds.start.getMonth()) +
+    1;
+
+  const totalPayroll =
+    employees
+      .filter((emp) => {
+        const hireD = new Date(emp.hire_date || emp.created_at || "");
+        if (hireD > periodBounds.end) return false;
+        if (!emp.is_active && emp.termination_date) {
+          const termD = new Date(emp.termination_date);
+          if (termD <= periodBounds.start) return false;
+        }
+        return true;
+      })
+      .reduce((sum, emp) => {
+        // For simplicity, we count full month salary if they were active at any point in the period
+        // In a real system, we'd prorate.
+        return sum + (emp.salary || 0) + (emp.airtime_allowance || 0);
+      }, 0) * numMonths;
+
+  const totalBudget = currentBudget ? currentBudget.amount : 0;
 
   const categoryTotals = expenses.reduce((acc: any, curr) => {
     const cat = curr.category;
@@ -213,23 +233,31 @@ export default function ExpenditurePage() {
     const newAmount = Number(budgetInput);
     if (newAmount > 0) {
       try {
-        if (currentBudget) {
-          // If updateBudget prevents amount change if already set, this will fail or ignore
+        const selectedYear =
+          selectedMonth === "All"
+            ? new Date().getFullYear().toString()
+            : selectedMonth.split("-")[0];
+
+        if (currentBudget && currentBudget.month === selectedYear) {
           const updated = await updateBudget(currentBudget, {
             amount: newAmount,
           });
           setCurrentBudget(updated as any);
+          setBudgets(
+            budgets.map((b) => (b.id === updated.id ? (updated as any) : b)),
+          );
         } else {
           const created = await addBudget({
-            month: currentMonthStr,
+            month: selectedYear,
             amount: newAmount,
           } as any);
           setCurrentBudget(created as any);
+          setBudgets([...budgets, created as any]);
         }
         setIsEditingBudget(false);
       } catch (error) {
         console.error("Failed to save budget:", error);
-        alert("Could not update budget. It might be immutable.");
+        alert("Could not update budget.");
       }
     }
   };
@@ -238,13 +266,6 @@ export default function ExpenditurePage() {
     setIsEditingBudget(false);
     setBudgetInput("");
   };
-
-  const currentYearMonth = new Date().toISOString().slice(0, 7);
-  const isFutureMonth =
-    selectedMonth !== "All" &&
-    !selectedMonth.includes("-Y") &&
-    !selectedMonth.includes("-Q") &&
-    selectedMonth > currentYearMonth;
 
   const handleAddExpense = async (newExpenseData: any) => {
     // If no budget for selected month, we could create one or error
@@ -255,9 +276,15 @@ export default function ExpenditurePage() {
     // We should ensure we have the correct budget_id.
     // For now, assume the user picked the right month in the UI.
 
-    if (!targetBudget && selectedMonth !== "All") {
-      alert("Please set a budget for this month first.");
-      return;
+    if (!targetBudget) {
+      // Try to find budget for the expense date year
+      const expYear = newExpenseData.date.split("-")[0];
+      targetBudget = budgets.find((b) => b.month === expYear) || null;
+
+      if (!targetBudget) {
+        alert(`Please set an annual budget for ${expYear} first.`);
+        return;
+      }
     }
 
     try {
@@ -306,13 +333,19 @@ export default function ExpenditurePage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteExpense = async (expense: Expense) => {
-    if (!confirm("Are you sure you want to delete this expense?")) return;
+  const handleDeleteExpense = (expense: Expense) => {
+    setExpenseToDelete(expense);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteExpense = async () => {
+    if (!expenseToDelete) return;
 
     try {
-      await deleteExpense(expense);
-      setExpenses(expenses.filter((e) => e.id !== expense.id));
-      setAllExpenses(allExpenses.filter((e) => e.id !== expense.id));
+      await deleteExpense(expenseToDelete);
+      setExpenses(expenses.filter((e) => e.id !== expenseToDelete.id));
+      setAllExpenses(allExpenses.filter((e) => e.id !== expenseToDelete.id));
+      setExpenseToDelete(null);
     } catch (error) {
       console.error("Failed to delete expense:", error);
       alert("Failed to delete expense.");
@@ -425,19 +458,6 @@ export default function ExpenditurePage() {
 
             {filterOpen && (
               <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
-                <button
-                  onClick={() => {
-                    setSelectedMonth("All");
-                    setFilterOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
-                    selectedMonth === "All"
-                      ? "text-pawa-blue font-semibold"
-                      : "text-slate-700"
-                  }`}
-                >
-                  All Time
-                </button>
                 {[
                   { val: "2026-Y", label: "Year 2026" },
                   { val: "2026-Q1", label: "Q1 2026 (Jan-Mar)" },
@@ -754,28 +774,24 @@ export default function ExpenditurePage() {
                           KES {expense.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
-                          {!isFutureDate && (
-                            <>
-                              <button
-                                onClick={() => handleEditExpense(expense)}
-                                className="p-1 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded transition-all"
-                                title="Edit"
-                              >
-                                <span className="material-icons-outlined text-[16px]">
-                                  edit
-                                </span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteExpense(expense)}
-                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-                                title="Delete"
-                              >
-                                <span className="material-icons-outlined text-[16px]">
-                                  delete
-                                </span>
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => handleEditExpense(expense)}
+                            className="p-1 text-gray-400 hover:text-pawa-blue hover:bg-pawa-blue/5 rounded transition-all"
+                            title="Edit"
+                          >
+                            <span className="material-icons-outlined text-[16px]">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExpense(expense)}
+                            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                            title="Delete"
+                          >
+                            <span className="material-icons-outlined text-[16px]">
+                              delete
+                            </span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -796,6 +812,17 @@ export default function ExpenditurePage() {
         onSubmit={handleAddExpense}
         existingCategories={uniqueCategories}
         initialData={editingExpense}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setExpenseToDelete(null);
+        }}
+        onConfirm={confirmDeleteExpense}
+        title="Delete Expense"
+        message={`Are you sure you want to delete the "${expenseToDelete?.description}" expense? This will remove it from your budget logs.`}
       />
     </div>
   );

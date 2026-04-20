@@ -1,4 +1,3 @@
-from datetime import datetime
 from schemas.budget import BudgetCreate, BudgetUpdate
 from models.budget import Budget
 from sqlalchemy import select
@@ -11,10 +10,11 @@ class BudgetService:
         self.db = db
 
     def create_budget(self, budget: BudgetCreate) -> Budget:
-        current_month = datetime.now().strftime("%Y-%m")
-        if budget.month < current_month:
-            raise ValueError("Cannot create budgets for past months.")
-        
+        # Check if budget already exists for this period (year)
+        existing = self.get_budget_by_month(budget.month)
+        if existing:
+            raise ValueError(f"Budget for {budget.month} already exists.")
+            
         budget_data = budget.dict()
         db_budget = Budget(**budget_data)
         self.db.add(db_budget)
@@ -40,10 +40,6 @@ class BudgetService:
         if not db_budget:
             return None
         
-        current_month = datetime.now().strftime("%Y-%m")
-        if db_budget.month < current_month:
-            raise ValueError("Past month budgets are immutable and cannot be updated.")
-
         update_data = budget.dict(exclude_unset=True)
             
         for field, value in update_data.items():
@@ -57,10 +53,6 @@ class BudgetService:
         if not db_budget:
             return None
         
-        current_month = datetime.now().strftime("%Y-%m")
-        if db_budget.month < current_month:
-            raise ValueError("Past month budgets are immutable and cannot be deleted.")
-
         self.db.delete(db_budget)
         self.db.commit()
         return db_budget

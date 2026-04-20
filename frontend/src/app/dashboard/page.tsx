@@ -374,7 +374,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-              Budget Used
+              {selectedMonth.includes("-Y") ? "Budget Used (YTD)" : "Budget Used"}
             </p>
             <span className="material-icons-outlined text-purple-500 bg-purple-50 p-2 rounded-lg">
               account_balance_wallet
@@ -384,7 +384,11 @@ export default function DashboardPage() {
             {data?.budget_used_percentage || 0}%
           </div>
           <p className="text-xs text-gray-400 mt-2 text-wrap">
-            Current month usage
+            {selectedMonth.includes("-Q")
+              ? `Q${selectedMonth.split("-Q")[1]} usage`
+              : selectedMonth.includes("-Y")
+                ? "Full year usage"
+                : `${new Date(selectedMonth + "-01").toLocaleString("default", { month: "long" })} usage`}
           </p>
         </div>
 

@@ -343,9 +343,7 @@ export default function EmployeesPage() {
                 </span>
               </span>
               <span className="text-slate-700 text-xs font-normal font-sans capitalize">
-                {selectedMonth === "All"
-                  ? "All Time"
-                  : selectedMonth.includes("-Q")
+                {selectedMonth.includes("-Q")
                     ? `Q${selectedMonth.split("-Q")[1]} ${selectedMonth.split("-")[0]}`
                     : selectedMonth.includes("-Y")
                       ? `Year ${selectedMonth.split("-Y")[0]}`
@@ -375,19 +373,6 @@ export default function EmployeesPage() {
 
             {filterOpen && (
               <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-100 z-50 py-1 max-h-[300px] overflow-y-auto">
-                <button
-                  onClick={() => {
-                    setSelectedMonth("All");
-                    setFilterOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors ${
-                    selectedMonth === "All"
-                      ? "text-pawa-blue font-semibold"
-                      : "text-slate-700"
-                  }`}
-                >
-                  All Time
-                </button>
                 {[
                   { val: "2026-Y", label: "Year 2026" },
                   { val: "2026-Q1", label: "Q1 2026 (Jan-Mar)" },
