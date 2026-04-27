@@ -1,4 +1,12 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Float, Enum as SQLEnum
+from sqlalchemy import (
+    Column,
+    String,
+    DateTime,
+    ForeignKey,
+    Boolean,
+    Float,
+    Enum as SQLEnum,
+)
 from enum import Enum
 from sqlalchemy.orm import relationship
 from core.database import Base
@@ -7,9 +15,10 @@ from uuid import uuid4
 
 
 class ContractType(str, Enum):
-    PERMANENT = "permanent"
-    CONTRACT = "contract"
-    GRADUATE_TRAINEE = "graduate_trainee"
+    PERMANENT = "PERMANENT"
+    CONTRACT = "CONTRACT"
+    GRADUATE_TRAINEE = "GRADUATE_TRAINEE"
+    INTERN = "INTERN"
 
 
 class Employee(Base):

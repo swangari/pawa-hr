@@ -182,7 +182,7 @@ export default function Header() {
                           Profile
                         </div>
                       </button>
-                      <button className="w-full flex flex-row items-center justify-start gap-0.5 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left self-stretch">
+                      {/* <button className="w-full flex flex-row items-center justify-start gap-0.5 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left self-stretch">
                         <div className="flex items-center justify-center w-6 h-6 flex-shrink-0 ml-[1.5px]">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -205,7 +205,7 @@ export default function Header() {
                         >
                           Settings
                         </Link>
-                      </button>
+                      </button> */}
                     </div>
                     <div className="self-stretch p-1 outline outline-1 outline-offset-[-1px] outline-Echo-300 flex flex-col justify-start items-start gap-2.5">
                       <button

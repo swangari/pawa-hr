@@ -152,7 +152,7 @@ export default function Sidebar() {
       </div>
 
       <div className="flex flex-col p-[8px] gap-2 self-stretch overflow-hidden">
-        <Link
+{/* <Link
           href="/configurations"
           className={cn(
             "flex items-center self-stretch py-2 rounded-lg transition-all text-[13px] font-[family:var(--Font-family-body,'Source_Sans_Pro')] font-normal leading-normal group",
@@ -185,7 +185,7 @@ export default function Sidebar() {
               Settings
             </span>
           )}
-        </Link>
+        </Link> */ }
       </div>
     </div>
   );

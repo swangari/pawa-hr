@@ -208,7 +208,7 @@ export default function EmployeesPage() {
       email: formData.email,
       role: formData.role,
       dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39",
-      contract_type: formData.employmentType.toLowerCase(),
+      contract_type: formData.employmentType === "Graduate Trainee" ? "GRADUATE_TRAINEE" : formData.employmentType.toUpperCase(),
       salary: Number(formData.salary),
       airtime_allowance: Number(formData.airtimeAllowance),
       hire_date: formData.hireDate
@@ -241,7 +241,7 @@ export default function EmployeesPage() {
       email: formData.email,
       role: formData.role,
       dept_id: dept?.id || "765f279e-1674-439d-81a7-0019754d9c39",
-      contract_type: formData.employmentType.toLowerCase(),
+      contract_type: formData.employmentType === "Graduate Trainee" ? "GRADUATE_TRAINEE" : formData.employmentType.toUpperCase(),
       salary: Number(formData.salary),
       airtime_allowance: Number(formData.airtimeAllowance),
       hire_date: formData.hireDate
