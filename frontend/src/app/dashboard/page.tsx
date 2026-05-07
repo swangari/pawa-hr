@@ -374,7 +374,9 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-pawa-border hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-              {selectedMonth.includes("-Y") ? "Budget Used (YTD)" : "Budget Used"}
+              {selectedMonth.includes("-Y")
+                ? "Budget Used (YTD)"
+                : "Budget Used"}
             </p>
             <span className="material-icons-outlined text-purple-500 bg-purple-50 p-2 rounded-lg">
               account_balance_wallet
@@ -689,7 +691,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Additional Analytics Section */}
-      <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
+      {/* <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100">
         <h2 className="text-xl font-bold text-gray-800 mb-8">
           Specialized Metrics
         </h2>
@@ -747,7 +749,7 @@ export default function DashboardPage() {
             <p className="mt-2 text-xs text-gray-400">Women in leadership</p>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
